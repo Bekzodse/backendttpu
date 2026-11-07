@@ -30,7 +30,7 @@ Below is the single, complete, self-contained master prompt consolidating all re
 You are an expert Java Backend Architect building the **"Raqamli Inventar"** API for Turin Polytechnic University in Tashkent (TTPU). This single backend API serves the Web application, Android app, and iOS app, and acts as the sole gateway to all external systems (1C Accounting, HEMIS, E-IMZO, Email SMTP, Telegram Bot API, and Firebase Cloud Messaging Push).
 
 ### Technology Stack
-- **Language & Build**: Java 21 (toolchain release 21, `-parameters`), Gradle (Kotlin DSL).
+- **Language & Build**: Java 21 (release 21, `-parameters`), Apache Maven (`pom.xml`).
 - **Framework & Architecture**: Spring Boot 3.4.3, Spring Modulith 1.3.3 (strict modular monolith).
 - **Database & Persistence**: PostgreSQL 16, Spring Data JPA (Hibernate 6), Hibernate Envers (`@Audited` reference history), Flyway migrations (`V1` through `V14`).
 - **Mapping & Boilerplate**: MapStruct 1.6.3 (`componentModel = "spring"`), Lombok (`@Getter`, `@Setter`, `@Builder`, `@RequiredArgsConstructor` — **never** use `@Data` on JPA entities).
@@ -57,7 +57,7 @@ You are an expert Java Backend Architect building the **"Raqamli Inventar"** API
 
 ### Milestone 1: Project Skeleton, Core Schema & Security (`common`, `references`, `security`)
 1. **DevOps & Project Setup**:
-   - Configure `build.gradle.kts`, `docker-compose.yml` (PostgreSQL 16, Redis 7, MinIO), and `.github/workflows/build.yml`.
+   - Configure `pom.xml`, `docker-compose.yml` (PostgreSQL 16, Redis 7, MinIO), and `.github/workflows/build.yml`.
 2. **Base Entities & Reference Schema (`V1__init_schema.sql`)**:
    - In `common`, create `BaseEntity` (`UUID id`, `Instant createdAt`, `Instant updatedAt`, `Long version`) and `BaseReferenceEntity` (adds `boolean active = true` for soft deletion) plus scope marker interfaces `DepartmentScoped` and `BuildingScoped`.
    - In `references`, create JPA entities for `Building`, `Floor`, `Room`, `Department`, `Employee`, and `Category` (with a `JSONB` `customFields` column).
