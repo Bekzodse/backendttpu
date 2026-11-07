@@ -1,0 +1,12 @@
+package uz.ttpu.inventory.integration.domain;
+
+public class ExternalSystemUnavailableException extends RuntimeException {
+
+    public ExternalSystemUnavailableException(String message) {
+        super(message);
+    }
+
+    public ExternalSystemUnavailableException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
