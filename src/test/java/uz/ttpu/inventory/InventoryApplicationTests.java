@@ -836,9 +836,9 @@ class InventoryApplicationTests {
         java.nio.file.Path dockerfilePath = java.nio.file.Path.of("Dockerfile");
         assertThat(dockerfilePath).exists();
         assertThat(java.nio.file.Files.readString(dockerfilePath))
-                .contains("FROM eclipse-temurin:21-jdk-alpine AS builder")
+                .contains("FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder")
                 .contains("FROM eclipse-temurin:21-jre-alpine AS runtime")
-                .contains("bootJar -x test")
+                .contains("mvn -B clean package -DskipTests")
                 .contains("/app/app.jar")
                 .contains("/actuator/health");
 

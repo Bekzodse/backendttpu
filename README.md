@@ -6,7 +6,7 @@ Unified Modular Monolith Backend API for **Turin Polytechnic University in Tashk
 
 ## 1. Technology Stack
 
-- **Language & Build**: Java 21, Gradle (Kotlin DSL)
+- **Language & Build**: Java 21, Apache Maven (`pom.xml`)
 - **Framework & Modularity**: Spring Boot 3.4.3, Spring Modulith 1.3.3, ArchUnit 1.3.0
 - **Database & Auditing**: PostgreSQL 16, Spring Data JPA (Hibernate 6), Hibernate Envers (`@Audited` reference revisions), Flyway (`V1`–`V14`)
 - **Security & Rate Limiting**: Spring Security 6 OAuth2 Resource Server (RSA-2048 Nimbus JWT), Argon2id (`bcprov-jdk18on`), 2FA TOTP (`dev.samstevens.totp`), SHA-256 refresh tokens, Bucket4j IP rate limiting, HSTS / `X-Frame-Options: DENY` / CSP headers
@@ -52,9 +52,9 @@ docker compose up --build -d
 docker compose ps
 ```
 
-### Option B: Local Gradle Run
+### Option B: Local Maven Run
 ```bash
-./gradlew bootRun
+./mvnw spring-boot:run
 ```
 
 ---
@@ -65,7 +65,7 @@ Once the server is running on `http://localhost:8080`:
 - **Swagger UI**: `http://localhost:8080/swagger-ui.html` (`http://localhost:8080/swagger-ui/index.html`)
 - **OpenAPI 3.0 JSON**: `http://localhost:8080/v3/api-docs`
 - **Health Check**: `http://localhost:8080/actuator/health`
-- **Public QR Item Card**: `http://localhost:8080/a/JBSWY3DPEB`
+- **Public QR Item Card**: `http://localhost:8080/a/TTPU000001`
 - **STOMP WebSocket**: `ws://localhost:8080/ws/inventory`
 
 ---
@@ -74,7 +74,10 @@ Once the server is running on `http://localhost:8080`:
 
 ```bash
 # Run all 140 unit, modularity, ArchUnit, and PostgreSQL integration tests
-./gradlew test
+./mvnw test
+
+# Build the executable Spring Boot JAR (target/app.jar)
+./mvnw clean package -DskipTests
 
 # Run the 200-concurrent-user k6 load test (30 constant QR scanners + 170 ERP users, < 2s SLA)
 k6 run load-test.js

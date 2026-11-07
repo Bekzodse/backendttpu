@@ -1,21 +1,20 @@
 # =============================================================================
-# Stage 1: Build Stage (Java 21 + Gradle Kotlin DSL)
+# Stage 1: Build Stage (Java 21 + Apache Maven)
 # =============================================================================
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /workspace
 
-# Copy Gradle wrapper and build configuration first for optimal layer caching
-COPY gradlew gradlew.bat gradle.properties settings.gradle.kts build.gradle.kts ./
-COPY gradle ./gradle
+# Copy Maven POM first for optimal dependency layer caching
+COPY pom.xml ./
 
-RUN chmod +x ./gradlew && ./gradlew --no-daemon dependencies || true
+RUN mvn -B dependency:go-offline || true
 
 # Copy application source and Flyway migrations
 COPY src ./src
 
 # Build the executable Spring Boot JAR (skip tests during image build; CI runs tests)
-RUN ./gradlew --no-daemon bootJar -x test
+RUN mvn -B clean package -DskipTests
 
 # =============================================================================
 # Stage 2: Production Runtime Stage (Java 21 JRE Alpine, Non-Root User)
@@ -45,7 +44,7 @@ ENV TZ=UTC \
 
 WORKDIR /app
 
-COPY --from=builder --chown=ttpu:ttpu /workspace/build/libs/app.jar /app/app.jar
+COPY --from=builder --chown=ttpu:ttpu /workspace/target/app.jar /app/app.jar
 
 USER ttpu
 

@@ -1,10 +1,9 @@
 .git
 .github
-.gradle
+.mvn
 .idea
-build
-out
 target
+out
 *.iml
 *.log
 .DS_Store
