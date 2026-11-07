@@ -12,6 +12,8 @@ import uz.ttpu.inventory.asset.domain.ItemState;
 
 public interface ItemRepository extends JpaRepository<Item, UUID>, JpaSpecificationExecutor<Item> {
     Optional<Item> findByInventoryNumberIgnoreCase(String inventoryNumber);
+    boolean existsByInventoryNumberIgnoreCase(String inventoryNumber);
+    boolean existsBySerialNumberIgnoreCase(String serialNumber);
     Optional<Item> findByQrCode(String qrCode);
     Optional<Item> findByQrCodeIgnoreCase(String qrCode);
     boolean existsByQrCode(String qrCode);

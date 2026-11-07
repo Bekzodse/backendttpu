@@ -55,5 +55,9 @@ public interface AssetLogisticsApi {
 
     ItemDto rejectTransfer(UUID itemId, String documentNumber);
 
+    boolean existsByInventoryNumber(String inventoryNumber);
+
+    boolean existsBySerialNumber(String serialNumber);
+
     ItemDto upsertPilotMigratedItem(PilotItemUpsertRequest request);
 }

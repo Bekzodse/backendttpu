@@ -465,6 +465,24 @@ public class AssetService implements AssetLogisticsApi {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean existsByInventoryNumber(String inventoryNumber) {
+        if (inventoryNumber == null || inventoryNumber.isBlank()) {
+            return false;
+        }
+        return itemRepository.existsByInventoryNumberIgnoreCase(inventoryNumber.trim());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsBySerialNumber(String serialNumber) {
+        if (serialNumber == null || serialNumber.isBlank()) {
+            return false;
+        }
+        return itemRepository.existsBySerialNumberIgnoreCase(serialNumber.trim());
+    }
+
+    @Override
     @Transactional
     @AuditableItemAction(AuditActionType.CHANGE)
     public ItemDto upsertPilotMigratedItem(PilotItemUpsertRequest request) {
