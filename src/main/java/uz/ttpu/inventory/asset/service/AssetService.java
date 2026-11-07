@@ -10,12 +10,20 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.ttpu.inventory.asset.api.AssetLogisticsApi;
+import uz.ttpu.inventory.asset.api.AssetSearchFilterRequest;
+import uz.ttpu.inventory.asset.api.AssetSearchResultDto;
 import uz.ttpu.inventory.asset.api.CreateItemRequest;
 import uz.ttpu.inventory.asset.api.ItemDto;
 import uz.ttpu.inventory.asset.api.ItemStateHistoryDto;
+import uz.ttpu.inventory.asset.api.PilotItemUpsertRequest;
 import uz.ttpu.inventory.asset.api.PublicItemCardDto;
 import uz.ttpu.inventory.asset.api.TransitionItemRequest;
 import uz.ttpu.inventory.asset.domain.IllegalStateTransitionException;
@@ -426,6 +434,27 @@ public class AssetService implements AssetLogisticsApi {
         return confirmIssue(itemId, toBuildingId, toFloorId, toRoomId, toDepartmentId, toEmployeeId, documentNumber);
     }
 
+    @Transactional(readOnly = true)
+    @AuditableItemAction(AuditActionType.READ)
+    public AssetSearchResultDto searchItems(AssetSearchFilterRequest filter, int page, int size) {
+        long startNanos = System.nanoTime();
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(200, Math.max(1, size));
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "inventoryNumber"));
+        Specification<Item> spec = ItemFuzzySearchSpecification.withFilter(filter);
+        Page<Item> resultPage = itemRepository.findAll(spec, pageable);
+        List<ItemDto> items = resultPage.getContent().stream().map(itemMapper::toDto).toList();
+        long elapsedMs = Math.max(1L, (System.nanoTime() - startNanos) / 1_000_000L);
+        return new AssetSearchResultDto(
+                items,
+                resultPage.getTotalElements(),
+                resultPage.getTotalPages(),
+                safePage,
+                safeSize,
+                elapsedMs
+        );
+    }
+
     @Override
     @Transactional
     @AuditableItemAction(AuditActionType.CHANGE)
@@ -433,6 +462,43 @@ public class AssetService implements AssetLogisticsApi {
         Item item = findItemOrThrow(itemId);
         Item updated = itemStateService.transition(item, ItemEvent.PUT_INTO_USE, documentNumber);
         return itemMapper.toDto(updated);
+    }
+
+    @Override
+    @Transactional
+    @AuditableItemAction(AuditActionType.CHANGE)
+    public ItemDto upsertPilotMigratedItem(PilotItemUpsertRequest request) {
+        Item item = itemRepository.findByInventoryNumberIgnoreCase(request.inventoryNumber().trim())
+                .orElseGet(() -> Item.builder()
+                        .inventoryNumber(request.inventoryNumber().trim())
+                        .qrCode(qrIdService.generateUniquePublicId())
+                        .build());
+
+        item.setName(request.name());
+        item.setSerialNumber(request.serialNumber());
+        item.setModel(request.model());
+        item.setCategoryId(request.categoryId());
+        item.setBuildingId(request.buildingId());
+        item.setFloorId(request.floorId());
+        item.setRoomId(request.roomId());
+        item.setRoom(request.roomLabel());
+        item.setDepartmentId(request.departmentId());
+        item.setCustodianEmployeeId(request.custodianEmployeeId());
+        item.setResponsiblePerson(request.responsiblePersonLabel());
+        item.setPurchasePrice(request.purchasePrice() != null ? request.purchasePrice() : BigDecimal.ZERO);
+        item.setResidualValue(request.residualValue() != null ? request.residualValue() : BigDecimal.ZERO);
+        item.setCommissionedAt(request.commissionedAt());
+        item.setOneCRefId(request.oneCRefId());
+        if (request.customAttributes() != null) {
+            item.setCustomAttributes(new HashMap<>(request.customAttributes()));
+        }
+
+        Item saved = itemRepository.save(item);
+        if (saved.getState() == ItemState.OMBORDA && saved.getRoomId() != null) {
+            Item dispatched = itemStateService.transition(saved, ItemEvent.DISPATCH, "PILOT-1C-MIGRATION");
+            saved = itemStateService.transition(dispatched, ItemEvent.PUT_INTO_USE, "PILOT-1C-MIGRATION");
+        }
+        return itemMapper.toDto(saved);
     }
 
     private Item findItemOrThrow(UUID id) {

@@ -6,7 +6,10 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +24,7 @@ import uz.ttpu.inventory.integration.domain.OutboxStatus;
 import uz.ttpu.inventory.integration.service.EImzoService;
 import uz.ttpu.inventory.integration.service.HemisSyncService;
 import uz.ttpu.inventory.integration.service.OutboxWorkerService;
+import uz.ttpu.inventory.integration.service.PilotDataMigrationService;
 
 @RestController
 @RequestMapping("/api/v1/integrations")
@@ -35,6 +39,7 @@ public class IntegrationController {
     private final OneCConnector oneCConnector;
     private final HemisSyncService hemisSyncService;
     private final EImzoService eImzoService;
+    private final PilotDataMigrationService pilotDataMigrationService;
 
     @GetMapping("/outbox")
     @PreAuthorize("isAuthenticated()")
@@ -129,5 +134,31 @@ public class IntegrationController {
     )
     public List<EImzoSignatureRecordDto> listDocumentSignatures(@PathVariable UUID documentId) {
         return eImzoService.listSignaturesForDocument(documentId);
+    }
+
+    @PostMapping("/pilot-migration/import-xlsx")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INVENTORY_ADMIN', 'ACCOUNTANT', 'WAREHOUSE_MANAGER')")
+    @Operation(
+            summary = "Import or validate 1C Pilot Building XLSX export (Prompt 10 / M7)",
+            description = "Reads pilot building asset data from a Base64-encoded 1C export XLSX file, validates rows, flags mismatches (e.g., MISSING_ROOM, MISSING_EMPLOYEE, MISSING_CATEGORY, INVALID_ROW_DATA), and safely maps valid rows to the reference and asset tables."
+    )
+    public PilotMigrationResultDto importPilotBuildingXlsx(
+            @Valid @RequestBody PilotMigrationImportRequest request
+    ) {
+        return pilotDataMigrationService.importPilotBuildingXlsx(request);
+    }
+
+    @GetMapping("/pilot-migration/template.xlsx")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "Download sample 1C Pilot Building XLSX migration template",
+            description = "Generates and downloads a ready-to-fill 15-column 1C pilot asset migration .xlsx template."
+    )
+    public ResponseEntity<byte[]> downloadPilotMigrationTemplate() {
+        byte[] xlsxBytes = pilotDataMigrationService.generateSamplePilot1CXlsxTemplate();
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"ttpu-1c-pilot-migration-template.xlsx\"")
+                .body(xlsxBytes);
     }
 }

@@ -64,6 +64,64 @@ public class AssetController {
         return ResponseEntity.ok(assetService.listItems(state, departmentId, buildingId));
     }
 
+    @GetMapping("/search")
+    @Operation(
+            summary = "High-performance pg_trgm full-text & fuzzy asset search (FT-8.2, FT-8.3)",
+            description = "Executes dynamic Spring Data JPA Specification queries backed by PostgreSQL pg_trgm GIN trigram indexes across name, inventory_number, serial, model, responsible_person, and room. Designed to return results in under 3 seconds across 200,000+ items."
+    )
+    public ResponseEntity<AssetSearchResultDto> searchItems(
+            @Parameter(description = "Global full-text / fuzzy search term across name, inventoryNumber, serial, model, responsiblePerson, and room")
+            @RequestParam(required = false) String q,
+            @Parameter(description = "Filter by asset name")
+            @RequestParam(required = false) String name,
+            @Parameter(description = "Filter by inventory number")
+            @RequestParam(required = false) String inventoryNumber,
+            @Parameter(description = "Filter by serial number")
+            @RequestParam(required = false) String serial,
+            @Parameter(description = "Filter by model")
+            @RequestParam(required = false) String model,
+            @Parameter(description = "Filter by responsible person name or code")
+            @RequestParam(required = false) String responsiblePerson,
+            @Parameter(description = "Filter by room number or name")
+            @RequestParam(required = false) String room,
+            @Parameter(description = "Filter by lifecycle state")
+            @RequestParam(required = false) ItemState state,
+            @Parameter(description = "Filter by category UUID")
+            @RequestParam(required = false) UUID categoryId,
+            @Parameter(description = "Filter by department UUID")
+            @RequestParam(required = false) UUID departmentId,
+            @Parameter(description = "Filter by building UUID")
+            @RequestParam(required = false) UUID buildingId,
+            @Parameter(description = "Filter by room UUID")
+            @RequestParam(required = false) UUID roomId,
+            @Parameter(description = "Filter by custodian employee UUID")
+            @RequestParam(required = false) UUID custodianEmployeeId,
+            @Parameter(description = "Enable pg_trgm word_similarity typo-tolerant matching")
+            @RequestParam(defaultValue = "false") boolean fuzzy,
+            @Parameter(description = "Zero-based page index")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size (max 200)")
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        AssetSearchFilterRequest filter = new AssetSearchFilterRequest(
+                q,
+                name,
+                inventoryNumber,
+                serial,
+                model,
+                responsiblePerson,
+                room,
+                state,
+                categoryId,
+                departmentId,
+                buildingId,
+                roomId,
+                custodianEmployeeId,
+                fuzzy
+        );
+        return ResponseEntity.ok(assetService.searchItems(filter, page, size));
+    }
+
     @GetMapping("/{id}")
     @Operation(
             summary = "Get item card by ID",

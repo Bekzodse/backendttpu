@@ -4290,6 +4290,59 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/pilot-migration/import-xlsx:
+    post:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Import or validate 1C Pilot Building XLSX export (Prompt 10 / M7)
+      description: "Reads pilot building asset data from a Base64-encoded 1C export\
+        \ XLSX file, validates rows, flags mismatches (e.g., MISSING_ROOM, MISSING_EMPLOYEE,\
+        \ MISSING_CATEGORY, INVALID_ROW_DATA), and safely maps valid rows to the reference\
+        \ and asset tables."
+      operationId: importPilotBuildingXlsx
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PilotMigrationImportRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PilotMigrationResultDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/integrations/outbox:
     get:
       tags:
@@ -6549,6 +6602,52 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/pilot-migration/template.xlsx:
+    get:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Download sample 1C Pilot Building XLSX migration template
+      description: Generates and downloads a ready-to-fill 15-column 1C pilot asset
+        migration .xlsx template.
+      operationId: downloadPilotMigrationTemplate
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/integrations/outbox/{id}:
     get:
       tags:
@@ -6966,6 +7065,170 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "403":
           description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/assets/search:
+    get:
+      tags:
+      - 03. Asset Management & Item State Machine
+      summary: "High-performance pg_trgm full-text & fuzzy asset search (FT-8.2, FT-8.3)"
+      description: "Executes dynamic Spring Data JPA Specification queries backed\
+        \ by PostgreSQL pg_trgm GIN trigram indexes across name, inventory_number,\
+        \ serial, model, responsible_person, and room. Designed to return results\
+        \ in under 3 seconds across 200,000+ items."
+      operationId: searchItems
+      parameters:
+      - name: q
+        in: query
+        description: "Global full-text / fuzzy search term across name, inventoryNumber,\
+          \ serial, model, responsiblePerson, and room"
+        required: false
+        schema:
+          type: string
+      - name: name
+        in: query
+        description: Filter by asset name
+        required: false
+        schema:
+          type: string
+      - name: inventoryNumber
+        in: query
+        description: Filter by inventory number
+        required: false
+        schema:
+          type: string
+      - name: serial
+        in: query
+        description: Filter by serial number
+        required: false
+        schema:
+          type: string
+      - name: model
+        in: query
+        description: Filter by model
+        required: false
+        schema:
+          type: string
+      - name: responsiblePerson
+        in: query
+        description: Filter by responsible person name or code
+        required: false
+        schema:
+          type: string
+      - name: room
+        in: query
+        description: Filter by room number or name
+        required: false
+        schema:
+          type: string
+      - name: state
+        in: query
+        description: Filter by lifecycle state
+        required: false
+        schema:
+          type: string
+          enum:
+          - OMBORDA
+          - YOLDA
+          - FOYDALANISHDA
+          - VAQTINCHA_TASHQARIDA
+          - TAMIRDA
+          - QIDIRUVDA
+          - HISOBDAN_CHIQARISHGA_TAVSIYA_ETILGAN
+          - HISOBDAN_CHIQARILGAN
+      - name: categoryId
+        in: query
+        description: Filter by category UUID
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: departmentId
+        in: query
+        description: Filter by department UUID
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: buildingId
+        in: query
+        description: Filter by building UUID
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: roomId
+        in: query
+        description: Filter by room UUID
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: custodianEmployeeId
+        in: query
+        description: Filter by custodian employee UUID
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: fuzzy
+        in: query
+        description: Enable pg_trgm word_similarity typo-tolerant matching
+        required: false
+        schema:
+          type: boolean
+          default: false
+      - name: page
+        in: query
+        description: Zero-based page index
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        description: Page size (max 200)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AssetSearchResultDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
           content:
             application/problem+json:
               schema:
@@ -8964,6 +9227,93 @@ components:
         updatedAt:
           type: string
           format: date-time
+    PilotMigrationImportRequest:
+      type: object
+      properties:
+        xlsxBase64:
+          type: string
+        defaultBuildingCode:
+          type: string
+        dryRun:
+          type: boolean
+        strictMode:
+          type: boolean
+        autoCreateMissingCategories:
+          type: boolean
+      required:
+      - xlsxBase64
+    PilotMigrationMismatchDto:
+      type: object
+      properties:
+        rowNumber:
+          type: integer
+          format: int32
+        inventoryNumber:
+          type: string
+        mismatchType:
+          type: string
+        columnName:
+          type: string
+        rawValue:
+          type: string
+        message:
+          type: string
+    PilotMigrationResultDto:
+      type: object
+      properties:
+        totalRowsRead:
+          type: integer
+          format: int32
+        validRowsCount:
+          type: integer
+          format: int32
+        importedItemsCount:
+          type: integer
+          format: int32
+        skippedRowsCount:
+          type: integer
+          format: int32
+        mismatchCount:
+          type: integer
+          format: int32
+        dryRun:
+          type: boolean
+        strictMode:
+          type: boolean
+        executedAt:
+          type: string
+          format: date-time
+        mismatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/PilotMigrationMismatchDto"
+        rowResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/PilotMigrationRowResultDto"
+    PilotMigrationRowResultDto:
+      type: object
+      properties:
+        rowNumber:
+          type: integer
+          format: int32
+        inventoryNumber:
+          type: string
+        assetName:
+          type: string
+        valid:
+          type: boolean
+        imported:
+          type: boolean
+        itemId:
+          type: string
+          format: uuid
+        qrCode:
+          type: string
+        mismatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/PilotMigrationMismatchDto"
     EnqueueOutboxRequest:
       type: object
       properties:
@@ -9695,6 +10045,28 @@ components:
         transitionedAt:
           type: string
           format: date-time
+    AssetSearchResultDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemDto"
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        queryTimeMs:
+          type: integer
+          format: int64
     PublicItemCardDto:
       type: object
       properties:

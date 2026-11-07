@@ -222,6 +222,10 @@ public class PdfPrintFormService implements PrintFormApi {
         if (descriptor == null) {
             throw new ResourceNotFoundException("Print template not found: " + templateKey);
         }
+        if (xhtmlContent == null || xhtmlContent.isBlank()) {
+            throw new IllegalArgumentException("XHTML content must not be blank");
+        }
+        validateXhtml(xhtmlContent);
         Instant now = Instant.now();
         customTemplates.put(templateKey, new CustomTemplateOverride(xhtmlContent, now));
         return new PrintTemplateDto(
@@ -232,6 +236,21 @@ public class PdfPrintFormService implements PrintFormApi {
                 true,
                 now
         );
+    }
+
+    private static void validateXhtml(String xhtml) {
+        try {
+            javax.xml.parsers.DocumentBuilderFactory factory = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+            factory.setValidating(false);
+            factory.setNamespaceAware(false);
+            factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            javax.xml.parsers.DocumentBuilder builder = factory.newDocumentBuilder();
+            builder.parse(new org.xml.sax.InputSource(new java.io.StringReader(xhtml)));
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Invalid XHTML template syntax: " + ex.getMessage(), ex);
+        }
     }
 
     private GeneratedPdfDocumentDto renderInventorySessionPdf(

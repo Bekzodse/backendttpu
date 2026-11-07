@@ -54,4 +54,6 @@ public interface AssetLogisticsApi {
     );
 
     ItemDto rejectTransfer(UUID itemId, String documentNumber);
+
+    ItemDto upsertPilotMigratedItem(PilotItemUpsertRequest request);
 }

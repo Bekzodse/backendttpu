@@ -1,5 +1,8 @@
 package uz.ttpu.inventory.references.api;
 
+import java.util.Optional;
+import java.util.UUID;
+
 public interface ReferenceSyncApi {
 
     DepartmentDto upsertDepartmentFromHemis(String code, String name);
@@ -15,4 +18,18 @@ public interface ReferenceSyncApi {
             String position,
             String departmentCode
     );
+
+    Optional<BuildingDto> findBuildingByCode(String code);
+
+    Optional<FloorDto> findFloorByBuildingAndNumber(UUID buildingId, int floorNumber);
+
+    Optional<DepartmentDto> findDepartmentByCode(String code);
+
+    Optional<RoomDto> findRoomByBuildingAndRoomNumber(UUID buildingId, String roomNumber);
+
+    Optional<EmployeeDto> findEmployeeByCodeOrFullName(String employeeCode, String fullName);
+
+    Optional<CategoryDto> findCategoryByCode(String code);
+
+    CategoryDto ensurePilotCategory(String code, String name, Integer depreciationYears);
 }

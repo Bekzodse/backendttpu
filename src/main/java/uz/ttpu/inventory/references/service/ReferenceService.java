@@ -5,6 +5,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
@@ -514,6 +516,104 @@ public class ReferenceService implements ReferenceSyncApi {
         }
         employee.setActive(true);
         return referenceMapper.toEmployeeDto(employeeRepository.save(employee));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<BuildingDto> findBuildingByCode(String code) {
+        if (code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+        return buildingRepository.findByCodeIgnoreCase(code.trim()).map(referenceMapper::toBuildingDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<FloorDto> findFloorByBuildingAndNumber(UUID buildingId, int floorNumber) {
+        if (buildingId == null) {
+            return Optional.empty();
+        }
+        return floorRepository.findAllByBuildingIdAndActiveTrue(buildingId).stream()
+                .filter(f -> f.getFloorNumber() != null && f.getFloorNumber() == floorNumber)
+                .findFirst()
+                .map(referenceMapper::toFloorDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<DepartmentDto> findDepartmentByCode(String code) {
+        if (code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+        return departmentRepository.findByCodeIgnoreCase(code.trim()).map(referenceMapper::toDepartmentDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<RoomDto> findRoomByBuildingAndRoomNumber(UUID buildingId, String roomNumber) {
+        if (roomNumber == null || roomNumber.isBlank()) {
+            return Optional.empty();
+        }
+        String normalizedRoom = roomNumber.trim();
+        return roomRepository.findAll().stream()
+                .filter(Room::isActive)
+                .filter(r -> buildingId == null
+                        || (r.getFloor() != null
+                        && r.getFloor().getBuilding() != null
+                        && buildingId.equals(r.getFloor().getBuilding().getId())))
+                .filter(r -> normalizedRoom.equalsIgnoreCase(r.getRoomNumber()))
+                .findFirst()
+                .map(referenceMapper::toRoomDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<EmployeeDto> findEmployeeByCodeOrFullName(String employeeCode, String fullName) {
+        if (employeeCode != null && !employeeCode.isBlank()) {
+            Optional<Employee> byCode = employeeRepository.findByEmployeeCodeIgnoreCase(employeeCode.trim());
+            if (byCode.isPresent()) {
+                return byCode.map(referenceMapper::toEmployeeDto);
+            }
+        }
+        if (fullName != null && !fullName.isBlank()) {
+            String target = fullName.trim().toLowerCase(Locale.ROOT);
+            return employeeRepository.findAll().stream()
+                    .filter(Employee::isActive)
+                    .filter(e -> {
+                        String fl = (e.getFirstName() + " " + e.getLastName()).trim().toLowerCase(Locale.ROOT);
+                        String lf = (e.getLastName() + " " + e.getFirstName()).trim().toLowerCase(Locale.ROOT);
+                        String flm = (e.getFirstName() + " " + e.getLastName()
+                                + (e.getMiddleName() != null ? " " + e.getMiddleName() : "")).trim().toLowerCase(Locale.ROOT);
+                        return target.equals(fl) || target.equals(lf) || target.equals(flm)
+                                || flm.contains(target) || target.contains(fl);
+                    })
+                    .findFirst()
+                    .map(referenceMapper::toEmployeeDto);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CategoryDto> findCategoryByCode(String code) {
+        if (code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+        return categoryRepository.findByCodeIgnoreCase(code.trim()).map(referenceMapper::toCategoryDto);
+    }
+
+    @Override
+    @Transactional
+    public CategoryDto ensurePilotCategory(String code, String name, Integer depreciationYears) {
+        return categoryRepository.findByCodeIgnoreCase(code.trim())
+                .map(referenceMapper::toCategoryDto)
+                .orElseGet(() -> createCategory(new CategoryRequest(
+                        code.trim(),
+                        name != null && !name.isBlank() ? name.trim() : code.trim(),
+                        null,
+                        depreciationYears != null ? depreciationYears : 5,
+                        HashMap.newHashMap(0)
+                )));
     }
 
     private Building findBuildingOrThrow(UUID id) {
