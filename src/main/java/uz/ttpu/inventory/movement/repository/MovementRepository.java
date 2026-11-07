@@ -9,3 +9,4 @@ public interface MovementRepository extends JpaRepository<MovementRecord, UUID> 
     List<MovementRecord> findAllByOperationIdOrderByRecordedAtAsc(UUID operationId);
     List<MovementRecord> findAllByItemIdOrderByRecordedAtDesc(UUID itemId);
 }
+

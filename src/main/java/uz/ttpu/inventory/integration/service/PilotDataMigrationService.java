@@ -426,6 +426,9 @@ public class PilotDataMigrationService {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
         String cleaned = raw.replace(",", ".").replaceAll("[^0-9.-]", "");
+        if (cleaned.isEmpty() || "-".equals(cleaned)) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
         try {
             BigDecimal val = new BigDecimal(cleaned).setScale(2, RoundingMode.HALF_UP);
             if (val.compareTo(BigDecimal.ZERO) < 0) {

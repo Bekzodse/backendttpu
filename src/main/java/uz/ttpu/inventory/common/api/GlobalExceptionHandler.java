@@ -122,6 +122,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> handleGenericException(
+            Exception ex,
+            HttpServletRequest request
+    ) {
+        return ProblemDetailFactory.toResponseEntity(
+                ErrorCode.ERR_INTERNAL_SERVER_ERROR,
+                "An unexpected internal error occurred.",
+                request.getLocale(),
+                resolveInstance(request)
+        );
+    }
+
     private URI resolveInstance(HttpServletRequest request) {
         if (request == null || request.getRequestURI() == null || request.getRequestURI().isBlank()) {
             return null;

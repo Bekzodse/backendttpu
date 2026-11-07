@@ -76,6 +76,13 @@ public enum ErrorCode {
             "So'rovlar soni belgilangan me'yordan oshib ketdi. Birozdan so'ng qayta urinib ko'ring.",
             "Превышен лимит запросов. Пожалуйста, повторите попытку позже.",
             "Too many requests. Please wait before retrying."
+    ),
+    ERR_INTERNAL_SERVER_ERROR(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Internal Server Error",
+            "Kutilmagan tizim xatoligi yuz berdi. Iltimos, administratorga murojaat qiling.",
+            "Произошла непредвиденная системная ошибка. Пожалуйста, обратитесь к администратору.",
+            "An unexpected internal error occurred. Please contact the administrator."
     );
 
     private final HttpStatus status;
