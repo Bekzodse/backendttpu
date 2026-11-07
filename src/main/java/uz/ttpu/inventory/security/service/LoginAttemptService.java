@@ -13,36 +13,40 @@ import uz.ttpu.inventory.security.repository.UserAccountRepository;
 @RequiredArgsConstructor
 public class LoginAttemptService {
 
-    private final UserAccountRepository userAccountRepository;
-    private final SecurityProperties securityProperties;
+  private final UserAccountRepository userAccountRepository;
+  private final SecurityProperties securityProperties;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public UserAccount recordFailedAttempt(UUID userId, Instant now) {
-        UserAccount user = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public UserAccount recordFailedAttempt(UUID userId, Instant now) {
+    UserAccount user =
+        userAccountRepository
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        if (user.getLockedUntil() != null && !user.getLockedUntil().isAfter(now)) {
-            user.setFailedLoginAttempts(0);
-            user.setLockedUntil(null);
-        }
-
-        int attempts = user.getFailedLoginAttempts() + 1;
-        user.setFailedLoginAttempts(attempts);
-
-        if (attempts >= securityProperties.getMaxFailedAttempts()) {
-            user.setLockedUntil(now.plus(securityProperties.getLockoutDuration()));
-        }
-
-        return userAccountRepository.saveAndFlush(user);
+    if (user.getLockedUntil() != null && !user.getLockedUntil().isAfter(now)) {
+      user.setFailedLoginAttempts(0);
+      user.setLockedUntil(null);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public UserAccount resetFailedAttemptsOnSuccess(UUID userId, Instant now) {
-        UserAccount user = userAccountRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
-        user.setFailedLoginAttempts(0);
-        user.setLockedUntil(null);
-        user.setLastLoginAt(now);
-        return userAccountRepository.saveAndFlush(user);
+    int attempts = user.getFailedLoginAttempts() + 1;
+    user.setFailedLoginAttempts(attempts);
+
+    if (attempts >= securityProperties.getMaxFailedAttempts()) {
+      user.setLockedUntil(now.plus(securityProperties.getLockoutDuration()));
     }
+
+    return userAccountRepository.saveAndFlush(user);
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public UserAccount resetFailedAttemptsOnSuccess(UUID userId, Instant now) {
+    UserAccount user =
+        userAccountRepository
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    user.setFailedLoginAttempts(0);
+    user.setLockedUntil(null);
+    user.setLastLoginAt(now);
+    return userAccountRepository.saveAndFlush(user);
+  }
 }

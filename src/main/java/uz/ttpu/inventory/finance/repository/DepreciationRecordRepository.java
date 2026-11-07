@@ -7,5 +7,5 @@ import uz.ttpu.inventory.finance.domain.DepreciationRecord;
 
 public interface DepreciationRecordRepository extends JpaRepository<DepreciationRecord, UUID> {
 
-    List<DepreciationRecord> findAllByItemIdOrderByCalculatedAtDesc(UUID itemId);
+  List<DepreciationRecord> findAllByItemIdOrderByCalculatedAtDesc(UUID itemId);
 }

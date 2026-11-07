@@ -6,11 +6,9 @@ import java.util.UUID;
 import uz.ttpu.inventory.workflow.domain.VerificationMethod;
 
 public record StepApprovalRequest(
-        @NotNull VerificationMethod verificationMethod,
-        @NotBlank(message = "E-IMZO PKCS#7 signature or 6-digit TOTP code is required")
+    @NotNull VerificationMethod verificationMethod,
+    @NotBlank(message = "E-IMZO PKCS#7 signature or 6-digit TOTP code is required")
         String signatureOrTotpCode,
-        String comment,
-        UUID decidedByUserId,
-        String decidedByUsername
-) {
-}
+    String comment,
+    UUID decidedByUserId,
+    String decidedByUsername) {}

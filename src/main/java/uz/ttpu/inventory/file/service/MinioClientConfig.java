@@ -21,38 +21,40 @@ import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 @RequiredArgsConstructor
 public class MinioClientConfig {
 
-    private final MinioProperties properties;
+  private final MinioProperties properties;
 
-    @Bean
-    public S3Client s3Client() {
-        return S3Client.builder()
-                .endpointOverride(URI.create(properties.getEndpoint()))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(properties.getAccessKey(), properties.getSecretKey())
-                ))
-                .region(Region.of(properties.getRegion()))
-                .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(true)
-                        .build())
-                .build();
-    }
+  @Bean
+  public S3Client s3Client() {
+    return S3Client.builder()
+        .endpointOverride(URI.create(properties.getEndpoint()))
+        .credentialsProvider(
+            StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(properties.getAccessKey(), properties.getSecretKey())))
+        .region(Region.of(properties.getRegion()))
+        .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
+        .build();
+  }
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void ensureBucketExists() {
-        if (!properties.isAutoCreateBucket()) {
-            return;
-        }
-        try {
-            S3Client client = s3Client();
-            try {
-                client.headBucket(HeadBucketRequest.builder().bucket(properties.getBucketName()).build());
-                log.info("MinIO S3 bucket '{}' is ready.", properties.getBucketName());
-            } catch (NoSuchBucketException ex) {
-                client.createBucket(CreateBucketRequest.builder().bucket(properties.getBucketName()).build());
-                log.info("Created MinIO S3 bucket '{}'.", properties.getBucketName());
-            }
-        } catch (Exception ex) {
-            log.warn("MinIO bucket readiness check deferred or offline at {}: {}", properties.getEndpoint(), ex.getMessage());
-        }
+  @EventListener(ApplicationReadyEvent.class)
+  public void ensureBucketExists() {
+    if (!properties.isAutoCreateBucket()) {
+      return;
     }
+    try {
+      S3Client client = s3Client();
+      try {
+        client.headBucket(HeadBucketRequest.builder().bucket(properties.getBucketName()).build());
+        log.info("MinIO S3 bucket '{}' is ready.", properties.getBucketName());
+      } catch (NoSuchBucketException ex) {
+        client.createBucket(
+            CreateBucketRequest.builder().bucket(properties.getBucketName()).build());
+        log.info("Created MinIO S3 bucket '{}'.", properties.getBucketName());
+      }
+    } catch (Exception ex) {
+      log.warn(
+          "MinIO bucket readiness check deferred or offline at {}: {}",
+          properties.getEndpoint(),
+          ex.getMessage());
+    }
+  }
 }

@@ -16,22 +16,23 @@ import uz.ttpu.inventory.common.domain.AuditActionType;
 @RequestMapping("/api/v1/audit/records")
 @RequiredArgsConstructor
 @Tag(
-        name = "06. Item Card Audit Trail",
-        description = "Immutable AOP-captured audit logs (READ, CHANGE, EXPORT) recorded in audit_record for item cards and inventory exports."
-)
+    name = "06. Item Card Audit Trail",
+    description =
+        "Immutable AOP-captured audit logs (READ, CHANGE, EXPORT) recorded in audit_record for item"
+            + " cards and inventory exports.")
 public class AuditController {
 
-    private final AuditService auditService;
+  private final AuditService auditService;
 
-    @GetMapping
-    @Operation(
-            summary = "Query item card audit trail records",
-            description = "Returns AOP-recorded audit logs optionally filtered by targetId (item UUID or 10-character QR code) and actionType (READ, CHANGE, EXPORT)."
-    )
-    public ResponseEntity<List<AuditRecordDto>> listAuditRecords(
-            @RequestParam(required = false) String targetId,
-            @RequestParam(required = false) AuditActionType actionType
-    ) {
-        return ResponseEntity.ok(auditService.listAuditRecords(targetId, actionType));
-    }
+  @GetMapping
+  @Operation(
+      summary = "Query item card audit trail records",
+      description =
+          "Returns AOP-recorded audit logs optionally filtered by targetId (item UUID or"
+              + " 10-character QR code) and actionType (READ, CHANGE, EXPORT).")
+  public ResponseEntity<List<AuditRecordDto>> listAuditRecords(
+      @RequestParam(required = false) String targetId,
+      @RequestParam(required = false) AuditActionType actionType) {
+    return ResponseEntity.ok(auditService.listAuditRecords(targetId, actionType));
+  }
 }

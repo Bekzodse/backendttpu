@@ -4,5 +4,5 @@ import java.util.UUID;
 
 public interface TotpVerificationApi {
 
-    boolean verifyRecipientTotp(UUID recipientEmployeeOrUserId, String totpCode);
+  boolean verifyRecipientTotp(UUID recipientEmployeeOrUserId, String totpCode);
 }

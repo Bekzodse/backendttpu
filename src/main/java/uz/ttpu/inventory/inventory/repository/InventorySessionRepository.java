@@ -7,5 +7,5 @@ import uz.ttpu.inventory.inventory.domain.InventorySession;
 
 public interface InventorySessionRepository extends JpaRepository<InventorySession, UUID> {
 
-    Optional<InventorySession> findBySessionCodeIgnoreCase(String sessionCode);
+  Optional<InventorySession> findBySessionCodeIgnoreCase(String sessionCode);
 }

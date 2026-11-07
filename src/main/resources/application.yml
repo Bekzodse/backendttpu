@@ -24,6 +24,10 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
@@ -51,6 +55,23 @@ file:
     auto-create-bucket: ${MINIO_AUTO_CREATE_BUCKET:true}
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name:raqamli-inventar}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
   health:
     mail:
       enabled: ${MAIL_HEALTH_ENABLED:false}

@@ -9,12 +9,10 @@ import uz.ttpu.inventory.inventory.domain.ReconciliationCategory;
 
 public interface InventoryScanActionRepository extends JpaRepository<InventoryScanAction, UUID> {
 
-    Optional<InventoryScanAction> findByClientActionId(UUID clientActionId);
+  Optional<InventoryScanAction> findByClientActionId(UUID clientActionId);
 
-    List<InventoryScanAction> findAllBySessionIdOrderByScannedAtAsc(UUID sessionId);
+  List<InventoryScanAction> findAllBySessionIdOrderByScannedAtAsc(UUID sessionId);
 
-    List<InventoryScanAction> findAllBySessionIdAndReconciliationCategoryOrderByScannedAtAsc(
-            UUID sessionId,
-            ReconciliationCategory category
-    );
+  List<InventoryScanAction> findAllBySessionIdAndReconciliationCategoryOrderByScannedAtAsc(
+      UUID sessionId, ReconciliationCategory category);
 }

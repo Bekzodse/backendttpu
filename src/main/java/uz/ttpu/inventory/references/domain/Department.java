@@ -24,17 +24,17 @@ import uz.ttpu.inventory.common.domain.BaseReferenceEntity;
 @Table(name = "departments")
 public class Department extends BaseReferenceEntity {
 
-    @Column(name = "code", nullable = false, unique = true, length = 50)
-    private String code;
+  @Column(name = "code", nullable = false, unique = true, length = 50)
+  private String code;
 
-    @Column(name = "name", nullable = false, length = 255)
-    private String name;
+  @Column(name = "name", nullable = false, length = 255)
+  private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id")
-    private Department parent;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "parent_id")
+  private Department parent;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "building_id")
-    private Building building;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "building_id")
+  private Building building;
 }

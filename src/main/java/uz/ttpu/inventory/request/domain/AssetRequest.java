@@ -24,50 +24,50 @@ import uz.ttpu.inventory.common.domain.BaseEntity;
 @Builder
 public class AssetRequest extends BaseEntity {
 
-    @Column(name = "request_number", nullable = false, unique = true, length = 100)
-    private String requestNumber;
+  @Column(name = "request_number", nullable = false, unique = true, length = 100)
+  private String requestNumber;
 
-    @Column(name = "category_id", nullable = false)
-    private UUID categoryId;
+  @Column(name = "category_id", nullable = false)
+  private UUID categoryId;
 
-    @Column(name = "requested_item_name", nullable = false, length = 255)
-    private String requestedItemName;
+  @Column(name = "requested_item_name", nullable = false, length = 255)
+  private String requestedItemName;
 
-    @Column(name = "quantity", nullable = false)
-    private int quantity;
+  @Column(name = "quantity", nullable = false)
+  private int quantity;
 
-    @Column(name = "estimated_unit_cost", nullable = false, precision = 18, scale = 2)
-    private BigDecimal estimatedUnitCost;
+  @Column(name = "estimated_unit_cost", nullable = false, precision = 18, scale = 2)
+  private BigDecimal estimatedUnitCost;
 
-    @Column(name = "total_estimated_cost", nullable = false, precision = 18, scale = 2)
-    private BigDecimal totalEstimatedCost;
+  @Column(name = "total_estimated_cost", nullable = false, precision = 18, scale = 2)
+  private BigDecimal totalEstimatedCost;
 
-    @Column(name = "department_id", nullable = false)
-    private UUID departmentId;
+  @Column(name = "department_id", nullable = false)
+  private UUID departmentId;
 
-    @Column(name = "building_id")
-    private UUID buildingId;
+  @Column(name = "building_id")
+  private UUID buildingId;
 
-    @Column(name = "requester_employee_id", nullable = false)
-    private UUID requesterEmployeeId;
+  @Column(name = "requester_employee_id", nullable = false)
+  private UUID requesterEmployeeId;
 
-    @Column(name = "justification", length = 1000)
-    private String justification;
+  @Column(name = "justification", length = 1000)
+  private String justification;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 40)
-    @Builder.Default
-    private AssetRequestStatus status = AssetRequestStatus.DRAFT;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "status", nullable = false, length = 40)
+  @Builder.Default
+  private AssetRequestStatus status = AssetRequestStatus.DRAFT;
 
-    @Column(name = "fulfilled_item_id")
-    private UUID fulfilledItemId;
+  @Column(name = "fulfilled_item_id")
+  private UUID fulfilledItemId;
 
-    @Column(name = "submitted_at", columnDefinition = "TIMESTAMPTZ")
-    private Instant submittedAt;
+  @Column(name = "submitted_at", columnDefinition = "TIMESTAMPTZ")
+  private Instant submittedAt;
 
-    @Column(name = "resolved_at", columnDefinition = "TIMESTAMPTZ")
-    private Instant resolvedAt;
+  @Column(name = "resolved_at", columnDefinition = "TIMESTAMPTZ")
+  private Instant resolvedAt;
 
-    @Column(name = "resolved_by_username", length = 150)
-    private String resolvedByUsername;
+  @Column(name = "resolved_by_username", length = 150)
+  private String resolvedByUsername;
 }

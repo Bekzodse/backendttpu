@@ -7,7 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import uz.ttpu.inventory.references.domain.Building;
 
-public interface BuildingRepository extends JpaRepository<Building, UUID>, JpaSpecificationExecutor<Building> {
-    Optional<Building> findByCodeIgnoreCase(String code);
-    List<Building> findAllByActiveTrue();
+public interface BuildingRepository
+    extends JpaRepository<Building, UUID>, JpaSpecificationExecutor<Building> {
+  Optional<Building> findByCodeIgnoreCase(String code);
+
+  List<Building> findAllByActiveTrue();
 }

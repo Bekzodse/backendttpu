@@ -5,9 +5,9 @@ import java.util.UUID;
 
 public interface OneCConnector {
 
-    OutboxMessageDto sendNewItemToOneC(OneCNewItemExportRequest request);
+  OutboxMessageDto sendNewItemToOneC(OneCNewItemExportRequest request);
 
-    List<OneCDepreciationRecordDto> receiveDepreciationData(List<OneCDepreciationRecordDto> records);
+  List<OneCDepreciationRecordDto> receiveDepreciationData(List<OneCDepreciationRecordDto> records);
 
-    List<OneCDepreciationRecordDto> pullDepreciationFromOneCStub(List<UUID> itemIds);
+  List<OneCDepreciationRecordDto> pullDepreciationFromOneCStub(List<UUID> itemIds);
 }

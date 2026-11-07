@@ -9,9 +9,9 @@ import uz.ttpu.inventory.request.domain.AssetRequestStatus;
 
 public interface AssetRequestRepository extends JpaRepository<AssetRequest, UUID> {
 
-    Optional<AssetRequest> findByRequestNumber(String requestNumber);
+  Optional<AssetRequest> findByRequestNumber(String requestNumber);
 
-    List<AssetRequest> findAllByDepartmentIdOrderByCreatedAtDesc(UUID departmentId);
+  List<AssetRequest> findAllByDepartmentIdOrderByCreatedAtDesc(UUID departmentId);
 
-    List<AssetRequest> findAllByStatusOrderByCreatedAtDesc(AssetRequestStatus status);
+  List<AssetRequest> findAllByStatusOrderByCreatedAtDesc(AssetRequestStatus status);
 }

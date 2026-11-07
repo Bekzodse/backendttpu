@@ -6,10 +6,8 @@ import java.util.Map;
 import java.util.UUID;
 
 public record CategoryRequest(
-        @NotBlank @Size(max = 50) String code,
-        @NotBlank @Size(max = 255) String name,
-        UUID parentId,
-        Integer depreciationYears,
-        Map<String, Object> customFields
-) {
-}
+    @NotBlank @Size(max = 50) String code,
+    @NotBlank @Size(max = 255) String name,
+    UUID parentId,
+    Integer depreciationYears,
+    Map<String, Object> customFields) {}

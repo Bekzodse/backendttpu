@@ -28,21 +28,21 @@ import uz.ttpu.inventory.common.domain.BaseReferenceEntity;
 @Table(name = "categories")
 public class Category extends BaseReferenceEntity {
 
-    @Column(name = "code", nullable = false, unique = true, length = 50)
-    private String code;
+  @Column(name = "code", nullable = false, unique = true, length = 50)
+  private String code;
 
-    @Column(name = "name", nullable = false, length = 255)
-    private String name;
+  @Column(name = "name", nullable = false, length = 255)
+  private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id")
-    private Category parent;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "parent_id")
+  private Category parent;
 
-    @Column(name = "depreciation_years")
-    private Integer depreciationYears;
+  @Column(name = "depreciation_years")
+  private Integer depreciationYears;
 
-    @Builder.Default
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "custom_fields", columnDefinition = "jsonb", nullable = false)
-    private Map<String, Object> customFields = new HashMap<>();
+  @Builder.Default
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "custom_fields", columnDefinition = "jsonb", nullable = false)
+  private Map<String, Object> customFields = new HashMap<>();
 }

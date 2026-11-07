@@ -9,7 +9,7 @@ import uz.ttpu.inventory.integration.domain.OutboxMessage;
 @Mapper
 public interface IntegrationMapper {
 
-    OutboxMessageDto toDto(OutboxMessage entity);
+  OutboxMessageDto toDto(OutboxMessage entity);
 
-    EImzoSignatureRecordDto toEImzoDto(EImzoSignatureRecord entity);
+  EImzoSignatureRecordDto toEImzoDto(EImzoSignatureRecord entity);
 }

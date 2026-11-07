@@ -12,29 +12,30 @@ import uz.ttpu.inventory.security.api.TotpSetupResponse;
 @RequiredArgsConstructor
 public class TotpService {
 
-    private final SecretGenerator secretGenerator;
-    private final CodeVerifier codeVerifier;
+  private final SecretGenerator secretGenerator;
+  private final CodeVerifier codeVerifier;
 
-    public String generateSecret() {
-        return secretGenerator.generate();
-    }
+  public String generateSecret() {
+    return secretGenerator.generate();
+  }
 
-    public boolean verifyCode(String secret, String code) {
-        if (secret == null || secret.isBlank() || code == null || code.isBlank()) {
-            return false;
-        }
-        return codeVerifier.isValidCode(secret, code);
+  public boolean verifyCode(String secret, String code) {
+    if (secret == null || secret.isBlank() || code == null || code.isBlank()) {
+      return false;
     }
+    return codeVerifier.isValidCode(secret, code);
+  }
 
-    public TotpSetupResponse buildSetupData(String username, String secret) {
-        QrData qrData = new QrData.Builder()
-                .label(username)
-                .secret(secret)
-                .issuer("Raqamli Inventar (TTPU)")
-                .algorithm(HashingAlgorithm.SHA1)
-                .digits(6)
-                .period(30)
-                .build();
-        return new TotpSetupResponse(secret, qrData.getUri());
-    }
+  public TotpSetupResponse buildSetupData(String username, String secret) {
+    QrData qrData =
+        new QrData.Builder()
+            .label(username)
+            .secret(secret)
+            .issuer("Raqamli Inventar (TTPU)")
+            .algorithm(HashingAlgorithm.SHA1)
+            .digits(6)
+            .period(30)
+            .build();
+    return new TotpSetupResponse(secret, qrData.getUri());
+  }
 }

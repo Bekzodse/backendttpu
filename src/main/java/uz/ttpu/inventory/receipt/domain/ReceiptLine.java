@@ -23,33 +23,31 @@ import uz.ttpu.inventory.common.domain.BaseEntity;
 @Builder
 @Entity
 @Table(
-        name = "receipt_lines",
-        uniqueConstraints = {
-            @UniqueConstraint(
-                    name = "uk_receipt_lines_category_serial",
-                    columnNames = {"category_id", "serial_number"}
-            )
-        }
-)
+    name = "receipt_lines",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_receipt_lines_category_serial",
+          columnNames = {"category_id", "serial_number"})
+    })
 public class ReceiptLine extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "receipt_id", nullable = false)
-    private Receipt receipt;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "receipt_id", nullable = false)
+  private Receipt receipt;
 
-    @Column(name = "name", nullable = false, length = 255)
-    private String name;
+  @Column(name = "name", nullable = false, length = 255)
+  private String name;
 
-    @Column(name = "category_id", nullable = false)
-    private UUID categoryId;
+  @Column(name = "category_id", nullable = false)
+  private UUID categoryId;
 
-    @Column(name = "serial_number", nullable = false, length = 150)
-    private String serialNumber;
+  @Column(name = "serial_number", nullable = false, length = 150)
+  private String serialNumber;
 
-    @Column(name = "price_without_vat", nullable = false, precision = 18, scale = 2)
-    private BigDecimal priceWithoutVat;
+  @Column(name = "price_without_vat", nullable = false, precision = 18, scale = 2)
+  private BigDecimal priceWithoutVat;
 
-    @Builder.Default
-    @Column(name = "quantity", nullable = false)
-    private Integer quantity = 1;
+  @Builder.Default
+  @Column(name = "quantity", nullable = false)
+  private Integer quantity = 1;
 }

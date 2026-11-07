@@ -6,24 +6,23 @@ import uz.ttpu.inventory.file.domain.FileCategory;
 
 public interface FileStorageApi {
 
-    StoredFileDto storeFile(UploadFileRequest request, String uploadedByUsername);
+  StoredFileDto storeFile(UploadFileRequest request, String uploadedByUsername);
 
-    StoredFileDto storeRawBytes(
-            String filename,
-            String contentType,
-            FileCategory category,
-            byte[] bytes,
-            UUID referenceEntityId,
-            String uploadedByUsername
-    );
+  StoredFileDto storeRawBytes(
+      String filename,
+      String contentType,
+      FileCategory category,
+      byte[] bytes,
+      UUID referenceEntityId,
+      String uploadedByUsername);
 
-    FileDownloadDto downloadFile(UUID id);
+  FileDownloadDto downloadFile(UUID id);
 
-    StoredFileDto getMetadata(UUID id);
+  StoredFileDto getMetadata(UUID id);
 
-    List<StoredFileDto> listByReferenceEntity(UUID referenceEntityId);
+  List<StoredFileDto> listByReferenceEntity(UUID referenceEntityId);
 
-    List<StoredFileDto> listAll();
+  List<StoredFileDto> listAll();
 
-    void deleteFile(UUID id, String actorUsername);
+  void deleteFile(UUID id, String actorUsername);
 }

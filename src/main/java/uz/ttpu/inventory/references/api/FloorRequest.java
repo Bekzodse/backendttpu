@@ -6,8 +6,6 @@ import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
 public record FloorRequest(
-        @NotNull UUID buildingId,
-        @NotNull Integer floorNumber,
-        @NotBlank @Size(max = 100) String name
-) {
-}
+    @NotNull UUID buildingId,
+    @NotNull Integer floorNumber,
+    @NotBlank @Size(max = 100) String name) {}

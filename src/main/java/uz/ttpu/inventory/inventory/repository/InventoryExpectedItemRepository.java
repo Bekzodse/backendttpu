@@ -7,17 +7,30 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import uz.ttpu.inventory.inventory.domain.InventoryExpectedItem;
 import uz.ttpu.inventory.inventory.domain.InventoryLineStatus;
 
-public interface InventoryExpectedItemRepository extends JpaRepository<InventoryExpectedItem, UUID> {
+public interface InventoryExpectedItemRepository
+    extends JpaRepository<InventoryExpectedItem, UUID> {
 
-    List<InventoryExpectedItem> findAllBySessionIdOrderByInventoryNumberAsc(UUID sessionId);
+  List<InventoryExpectedItem> findAllBySessionIdOrderByInventoryNumberAsc(UUID sessionId);
 
-    List<InventoryExpectedItem> findAllBySessionIdAndRoomIdOrderByInventoryNumberAsc(UUID sessionId, UUID roomId);
+  List<InventoryExpectedItem> findAllBySessionIdOrderByInventoryNumberAsc(
+      UUID sessionId, org.springframework.data.domain.Pageable pageable);
 
-    Optional<InventoryExpectedItem> findBySessionIdAndItemId(UUID sessionId, UUID itemId);
+  List<InventoryExpectedItem>
+      findAllBySessionIdAndInventoryNumberGreaterThanOrderByInventoryNumberAsc(
+          UUID sessionId,
+          String lastInventoryNumber,
+          org.springframework.data.domain.Pageable pageable);
 
-    Optional<InventoryExpectedItem> findBySessionIdAndQrCodeIgnoreCase(UUID sessionId, String qrCode);
+  List<InventoryExpectedItem> findAllBySessionIdAndRoomIdOrderByInventoryNumberAsc(
+      UUID sessionId, UUID roomId);
 
-    Optional<InventoryExpectedItem> findBySessionIdAndInventoryNumberIgnoreCase(UUID sessionId, String inventoryNumber);
+  Optional<InventoryExpectedItem> findBySessionIdAndItemId(UUID sessionId, UUID itemId);
 
-    long countBySessionIdAndRoomIdAndLineStatus(UUID sessionId, UUID roomId, InventoryLineStatus lineStatus);
+  Optional<InventoryExpectedItem> findBySessionIdAndQrCodeIgnoreCase(UUID sessionId, String qrCode);
+
+  Optional<InventoryExpectedItem> findBySessionIdAndInventoryNumberIgnoreCase(
+      UUID sessionId, String inventoryNumber);
+
+  long countBySessionIdAndRoomIdAndLineStatus(
+      UUID sessionId, UUID roomId, InventoryLineStatus lineStatus);
 }

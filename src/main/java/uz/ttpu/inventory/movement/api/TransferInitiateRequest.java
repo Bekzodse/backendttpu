@@ -7,16 +7,14 @@ import java.util.UUID;
 import uz.ttpu.inventory.movement.domain.MovementType;
 
 public record TransferInitiateRequest(
-        UUID itemId,
-        String qrCode,
-        @NotBlank @Size(max = 100) String documentNumber,
-        @NotNull MovementType transferType,
-        UUID toBuildingId,
-        UUID toFloorId,
-        @NotNull UUID toRoomId,
-        UUID toDepartmentId,
-        @NotNull UUID receivingEmployeeId,
-        UUID initiatingEmployeeId,
-        String notes
-) {
-}
+    UUID itemId,
+    String qrCode,
+    @NotBlank @Size(max = 100) String documentNumber,
+    @NotNull MovementType transferType,
+    UUID toBuildingId,
+    UUID toFloorId,
+    @NotNull UUID toRoomId,
+    UUID toDepartmentId,
+    @NotNull UUID receivingEmployeeId,
+    UUID initiatingEmployeeId,
+    String notes) {}

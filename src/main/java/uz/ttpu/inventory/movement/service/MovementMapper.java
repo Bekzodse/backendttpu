@@ -7,5 +7,5 @@ import uz.ttpu.inventory.movement.domain.MovementRecord;
 @Mapper(componentModel = "spring")
 public interface MovementMapper {
 
-    MovementRecordDto toDto(MovementRecord record);
+  MovementRecordDto toDto(MovementRecord record);
 }

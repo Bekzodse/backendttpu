@@ -7,5 +7,5 @@ import uz.ttpu.inventory.report.domain.ReportExportLog;
 
 public interface ReportExportLogRepository extends JpaRepository<ReportExportLog, UUID> {
 
-    List<ReportExportLog> findAllByOrderByGeneratedAtDesc();
+  List<ReportExportLog> findAllByOrderByGeneratedAtDesc();
 }

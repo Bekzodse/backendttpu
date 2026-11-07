@@ -20,65 +20,71 @@ import uz.ttpu.inventory.asset.repository.ItemRepository;
 @RequiredArgsConstructor
 public class AssetScheduledAlertJob {
 
-    public static final int WARRANTY_WARNING_DAYS = 30;
+  public static final int WARRANTY_WARNING_DAYS = 30;
 
-    private final ItemRepository itemRepository;
-    private final ApplicationEventPublisher eventPublisher;
+  private final ItemRepository itemRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
-    @Scheduled(cron = "${app.jobs.overdue-returns-cron:0 0 8 * * *}", zone = "UTC")
-    @SchedulerLock(name = "checkOverdueItemReturnsJob", lockAtLeastFor = "PT1M", lockAtMostFor = "PT10M")
-    @Transactional(readOnly = true)
-    public void runDailyOverdueReturnsJob() {
-        checkAndPublishOverdueReturns();
+  @Scheduled(cron = "${app.jobs.overdue-returns-cron:0 0 8 * * *}", zone = "UTC")
+  @SchedulerLock(
+      name = "checkOverdueItemReturnsJob",
+      lockAtLeastFor = "PT1M",
+      lockAtMostFor = "PT10M")
+  @Transactional(readOnly = true)
+  public void runDailyOverdueReturnsJob() {
+    checkAndPublishOverdueReturns();
+  }
+
+  @Transactional(readOnly = true)
+  public int checkAndPublishOverdueReturns() {
+    Instant now = Instant.now();
+    List<Item> overdueItems =
+        itemRepository.findAllByStateInAndExpectedReturnAtBefore(
+            Set.of(ItemState.VAQTINCHA_TASHQARIDA, ItemState.TAMIRDA), now);
+
+    for (Item item : overdueItems) {
+      eventPublisher.publishEvent(
+          new OverdueReturnAlertEvent(
+              item.getId(),
+              item.getInventoryNumber(),
+              item.getName(),
+              item.getState(),
+              item.getExpectedReturnAt(),
+              item.getCustodianEmployeeId(),
+              now));
     }
+    return overdueItems.size();
+  }
 
-    @Transactional(readOnly = true)
-    public int checkAndPublishOverdueReturns() {
-        Instant now = Instant.now();
-        List<Item> overdueItems = itemRepository.findAllByStateInAndExpectedReturnAtBefore(
-                Set.of(ItemState.VAQTINCHA_TASHQARIDA, ItemState.TAMIRDA),
-                now
-        );
+  @Scheduled(cron = "${app.jobs.expiring-warranties-cron:0 30 8 * * *}", zone = "UTC")
+  @SchedulerLock(
+      name = "checkExpiringWarrantiesJob",
+      lockAtLeastFor = "PT1M",
+      lockAtMostFor = "PT10M")
+  @Transactional(readOnly = true)
+  public void runDailyExpiringWarrantiesJob() {
+    checkAndPublishExpiringWarranties();
+  }
 
-        for (Item item : overdueItems) {
-            eventPublisher.publishEvent(new OverdueReturnAlertEvent(
-                    item.getId(),
-                    item.getInventoryNumber(),
-                    item.getName(),
-                    item.getState(),
-                    item.getExpectedReturnAt(),
-                    item.getCustodianEmployeeId(),
-                    now
-            ));
-        }
-        return overdueItems.size();
+  @Transactional(readOnly = true)
+  public int checkAndPublishExpiringWarranties() {
+    Instant now = Instant.now();
+    Instant windowEnd = now.plus(Duration.ofDays(WARRANTY_WARNING_DAYS));
+    List<Item> expiringItems = itemRepository.findAllByWarrantyExpiresAtBetween(now, windowEnd);
+
+    for (Item item : expiringItems) {
+      long daysRemaining =
+          Math.max(0L, Duration.between(now, item.getWarrantyExpiresAt()).toDays());
+      eventPublisher.publishEvent(
+          new WarrantyExpiringAlertEvent(
+              item.getId(),
+              item.getInventoryNumber(),
+              item.getName(),
+              item.getWarrantyExpiresAt(),
+              daysRemaining,
+              item.getCustodianEmployeeId(),
+              now));
     }
-
-    @Scheduled(cron = "${app.jobs.expiring-warranties-cron:0 30 8 * * *}", zone = "UTC")
-    @SchedulerLock(name = "checkExpiringWarrantiesJob", lockAtLeastFor = "PT1M", lockAtMostFor = "PT10M")
-    @Transactional(readOnly = true)
-    public void runDailyExpiringWarrantiesJob() {
-        checkAndPublishExpiringWarranties();
-    }
-
-    @Transactional(readOnly = true)
-    public int checkAndPublishExpiringWarranties() {
-        Instant now = Instant.now();
-        Instant windowEnd = now.plus(Duration.ofDays(WARRANTY_WARNING_DAYS));
-        List<Item> expiringItems = itemRepository.findAllByWarrantyExpiresAtBetween(now, windowEnd);
-
-        for (Item item : expiringItems) {
-            long daysRemaining = Math.max(0L, Duration.between(now, item.getWarrantyExpiresAt()).toDays());
-            eventPublisher.publishEvent(new WarrantyExpiringAlertEvent(
-                    item.getId(),
-                    item.getInventoryNumber(),
-                    item.getName(),
-                    item.getWarrantyExpiresAt(),
-                    daysRemaining,
-                    item.getCustodianEmployeeId(),
-                    now
-            ));
-        }
-        return expiringItems.size();
-    }
+    return expiringItems.size();
+  }
 }

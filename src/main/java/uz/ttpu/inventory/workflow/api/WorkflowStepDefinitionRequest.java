@@ -9,12 +9,10 @@ import java.util.Map;
 import uz.ttpu.inventory.workflow.domain.VerificationMethod;
 
 public record WorkflowStepDefinitionRequest(
-        @Min(1) int stepOrder,
-        @NotBlank @Size(max = 150) String stepName,
-        @NotBlank @Size(max = 64) String approverRole,
-        @NotNull VerificationMethod requiredVerificationMethod,
-        BigDecimal minAmountCondition,
-        BigDecimal maxAmountCondition,
-        Map<String, Object> conditionAttributes
-) {
-}
+    @Min(1) int stepOrder,
+    @NotBlank @Size(max = 150) String stepName,
+    @NotBlank @Size(max = 64) String approverRole,
+    @NotNull VerificationMethod requiredVerificationMethod,
+    BigDecimal minAmountCondition,
+    BigDecimal maxAmountCondition,
+    Map<String, Object> conditionAttributes) {}

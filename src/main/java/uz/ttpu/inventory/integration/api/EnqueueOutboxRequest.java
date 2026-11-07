@@ -7,14 +7,12 @@ import java.util.UUID;
 import uz.ttpu.inventory.integration.domain.ExternalSystemType;
 
 public record EnqueueOutboxRequest(
-        @NotBlank String idempotencyKey,
-        @NotNull ExternalSystemType targetSystem,
-        @NotBlank String aggregateType,
-        @NotNull UUID aggregateId,
-        @NotBlank String eventType,
-        @NotBlank String endpointUrl,
-        String httpMethod,
-        @NotNull Map<String, Object> payload,
-        Integer maxAttempts
-) {
-}
+    @NotBlank String idempotencyKey,
+    @NotNull ExternalSystemType targetSystem,
+    @NotBlank String aggregateType,
+    @NotNull UUID aggregateId,
+    @NotBlank String eventType,
+    @NotBlank String endpointUrl,
+    String httpMethod,
+    @NotNull Map<String, Object> payload,
+    Integer maxAttempts) {}

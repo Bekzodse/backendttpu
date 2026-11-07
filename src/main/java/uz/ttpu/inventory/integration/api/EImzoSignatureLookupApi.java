@@ -5,19 +5,18 @@ import java.util.UUID;
 
 public interface EImzoSignatureLookupApi {
 
-    List<EImzoSignatureRecordDto> listSignaturesForDocument(UUID documentId);
+  List<EImzoSignatureRecordDto> listSignaturesForDocument(UUID documentId);
 
-    EImzoSignatureRecordDto verifyAndRecordSignedPdf(VerifySignedPdfRequest request);
+  EImzoSignatureRecordDto verifyAndRecordSignedPdf(VerifySignedPdfRequest request);
 
-    EImzoSignatureRecordDto verifyAndRecordSignedPdfBlob(
-            String documentType,
-            UUID documentId,
-            String documentNumber,
-            byte[] signedPdfBlob,
-            String signerPinfl,
-            String signerTin,
-            String signerFullName,
-            String signerOrganization,
-            String certificateSerialNumber
-    );
+  EImzoSignatureRecordDto verifyAndRecordSignedPdfBlob(
+      String documentType,
+      UUID documentId,
+      String documentNumber,
+      byte[] signedPdfBlob,
+      String signerPinfl,
+      String signerTin,
+      String signerFullName,
+      String signerOrganization,
+      String certificateSerialNumber);
 }

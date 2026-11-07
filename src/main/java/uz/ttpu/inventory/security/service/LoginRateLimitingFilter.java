@@ -24,68 +24,67 @@ import uz.ttpu.inventory.common.domain.ProblemDetailFactory;
 @RequiredArgsConstructor
 public class LoginRateLimitingFilter extends OncePerRequestFilter {
 
-    private static final Set<String> RATE_LIMITED_AUTH_PATHS = Set.of(
-            "/api/v1/auth/login",
-            "/api/v1/auth/refresh"
-    );
+  private static final Set<String> RATE_LIMITED_AUTH_PATHS =
+      Set.of("/api/v1/auth/login", "/api/v1/auth/refresh");
 
-    private final LoginRateLimiterService loginRateLimiterService;
-    private final ObjectMapper objectMapper;
+  private final LoginRateLimiterService loginRateLimiterService;
+  private final ObjectMapper objectMapper;
 
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getServletPath();
-        if (path == null || path.isBlank()) {
-            path = request.getRequestURI();
-        }
-        return path == null || !RATE_LIMITED_AUTH_PATHS.contains(path);
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    String path = request.getServletPath();
+    if (path == null || path.isBlank()) {
+      path = request.getRequestURI();
+    }
+    return path == null || !RATE_LIMITED_AUTH_PATHS.contains(path);
+  }
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      throws ServletException, IOException {
+    String clientIp = extractClientIp(request);
+    String bucketKey = request.getRequestURI() + ":" + clientIp;
+
+    ConsumptionProbe probe = loginRateLimiterService.tryConsume(bucketKey);
+    if (probe.isConsumed()) {
+      response.setHeader("X-Rate-Limit-Remaining", String.valueOf(probe.getRemainingTokens()));
+      filterChain.doFilter(request, response);
+      return;
     }
 
-    @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
-        String clientIp = extractClientIp(request);
-        String bucketKey = request.getRequestURI() + ":" + clientIp;
+    long retryAfterSeconds =
+        Math.max(1L, TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill()));
+    response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+    response.setHeader(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfterSeconds));
+    response.setHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(retryAfterSeconds));
 
-        ConsumptionProbe probe = loginRateLimiterService.tryConsume(bucketKey);
-        if (probe.isConsumed()) {
-            response.setHeader("X-Rate-Limit-Remaining", String.valueOf(probe.getRemainingTokens()));
-            filterChain.doFilter(request, response);
-            return;
-        }
+    String requestUri =
+        (request.getRequestURI() != null && !request.getRequestURI().isBlank())
+            ? request.getRequestURI()
+            : "/api/v1/auth/login";
+    ProblemDetail problem =
+        ProblemDetailFactory.create(
+            ErrorCode.ERR_RATE_LIMIT_EXCEEDED,
+            "Too many authentication attempts from "
+                + clientIp
+                + ". Retry after "
+                + retryAfterSeconds
+                + " seconds.",
+            request.getLocale(),
+            URI.create(requestUri));
+    problem.setProperty("retryAfterSeconds", retryAfterSeconds);
 
-        long retryAfterSeconds = Math.max(
-                1L,
-                TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill())
-        );
-        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-        response.setHeader(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfterSeconds));
-        response.setHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(retryAfterSeconds));
+    objectMapper.writeValue(response.getOutputStream(), problem);
+  }
 
-        String requestUri = (request.getRequestURI() != null && !request.getRequestURI().isBlank())
-                ? request.getRequestURI()
-                : "/api/v1/auth/login";
-        ProblemDetail problem = ProblemDetailFactory.create(
-                ErrorCode.ERR_RATE_LIMIT_EXCEEDED,
-                "Too many authentication attempts from " + clientIp + ". Retry after " + retryAfterSeconds + " seconds.",
-                request.getLocale(),
-                URI.create(requestUri)
-        );
-        problem.setProperty("retryAfterSeconds", retryAfterSeconds);
-
-        objectMapper.writeValue(response.getOutputStream(), problem);
+  private String extractClientIp(HttpServletRequest request) {
+    String forwardedFor = request.getHeader("X-Forwarded-For");
+    if (forwardedFor != null && !forwardedFor.isBlank()) {
+      return forwardedFor.split(",")[0].trim();
     }
-
-    private String extractClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        String remoteAddr = request.getRemoteAddr();
-        return (remoteAddr != null && !remoteAddr.isBlank()) ? remoteAddr : "127.0.0.1";
-    }
+    String remoteAddr = request.getRemoteAddr();
+    return (remoteAddr != null && !remoteAddr.isBlank()) ? remoteAddr : "127.0.0.1";
+  }
 }

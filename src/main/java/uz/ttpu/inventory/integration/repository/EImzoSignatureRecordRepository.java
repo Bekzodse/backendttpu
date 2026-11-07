@@ -7,5 +7,5 @@ import uz.ttpu.inventory.integration.domain.EImzoSignatureRecord;
 
 public interface EImzoSignatureRecordRepository extends JpaRepository<EImzoSignatureRecord, UUID> {
 
-    List<EImzoSignatureRecord> findAllByDocumentIdOrderByVerifiedAtDesc(UUID documentId);
+  List<EImzoSignatureRecord> findAllByDocumentIdOrderByVerifiedAtDesc(UUID documentId);
 }

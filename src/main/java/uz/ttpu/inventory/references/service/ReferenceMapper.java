@@ -18,23 +18,23 @@ import uz.ttpu.inventory.references.domain.Room;
 @Mapper(componentModel = "spring")
 public interface ReferenceMapper {
 
-    BuildingDto toBuildingDto(Building building);
+  BuildingDto toBuildingDto(Building building);
 
-    @Mapping(target = "buildingId", source = "building.id")
-    FloorDto toFloorDto(Floor floor);
+  @Mapping(target = "buildingId", source = "building.id")
+  FloorDto toFloorDto(Floor floor);
 
-    @Mapping(target = "parentId", source = "parent.id")
-    @Mapping(target = "buildingId", source = "building.id")
-    DepartmentDto toDepartmentDto(Department department);
+  @Mapping(target = "parentId", source = "parent.id")
+  @Mapping(target = "buildingId", source = "building.id")
+  DepartmentDto toDepartmentDto(Department department);
 
-    @Mapping(target = "floorId", source = "floor.id")
-    @Mapping(target = "departmentId", source = "department.id")
-    RoomDto toRoomDto(Room room);
+  @Mapping(target = "floorId", source = "floor.id")
+  @Mapping(target = "departmentId", source = "department.id")
+  RoomDto toRoomDto(Room room);
 
-    @Mapping(target = "departmentId", source = "department.id")
-    @Mapping(target = "roomId", source = "room.id")
-    EmployeeDto toEmployeeDto(Employee employee);
+  @Mapping(target = "departmentId", source = "department.id")
+  @Mapping(target = "roomId", source = "room.id")
+  EmployeeDto toEmployeeDto(Employee employee);
 
-    @Mapping(target = "parentId", source = "parent.id")
-    CategoryDto toCategoryDto(Category category);
+  @Mapping(target = "parentId", source = "parent.id")
+  CategoryDto toCategoryDto(Category category);
 }

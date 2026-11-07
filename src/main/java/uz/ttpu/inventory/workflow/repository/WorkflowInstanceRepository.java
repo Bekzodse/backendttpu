@@ -9,6 +9,8 @@ import uz.ttpu.inventory.workflow.domain.WorkflowInstance;
 import uz.ttpu.inventory.workflow.domain.WorkflowState;
 
 public interface WorkflowInstanceRepository extends JpaRepository<WorkflowInstance, UUID> {
-    Optional<WorkflowInstance> findByDocumentTypeAndDocumentId(WorkflowDocumentType documentType, UUID documentId);
-    List<WorkflowInstance> findAllByState(WorkflowState state);
+  Optional<WorkflowInstance> findByDocumentTypeAndDocumentId(
+      WorkflowDocumentType documentType, UUID documentId);
+
+  List<WorkflowInstance> findAllByState(WorkflowState state);
 }

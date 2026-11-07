@@ -7,5 +7,5 @@ import uz.ttpu.inventory.notification.domain.NotificationLog;
 @Mapper
 public interface NotificationMapper {
 
-    NotificationLogDto toDto(NotificationLog entity);
+  NotificationLogDto toDto(NotificationLog entity);
 }

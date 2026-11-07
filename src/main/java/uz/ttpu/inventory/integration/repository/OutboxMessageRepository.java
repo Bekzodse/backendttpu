@@ -12,14 +12,12 @@ import uz.ttpu.inventory.integration.domain.OutboxStatus;
 
 public interface OutboxMessageRepository extends JpaRepository<OutboxMessage, UUID> {
 
-    Optional<OutboxMessage> findByIdempotencyKey(String idempotencyKey);
+  Optional<OutboxMessage> findByIdempotencyKey(String idempotencyKey);
 
-    List<OutboxMessage> findTop50ByStatusInAndNextAttemptAtLessThanEqualOrderByCreatedAtAsc(
-            Collection<OutboxStatus> statuses,
-            Instant now
-    );
+  List<OutboxMessage> findTop50ByStatusInAndNextAttemptAtLessThanEqualOrderByCreatedAtAsc(
+      Collection<OutboxStatus> statuses, Instant now);
 
-    List<OutboxMessage> findAllByTargetSystemOrderByCreatedAtDesc(ExternalSystemType targetSystem);
+  List<OutboxMessage> findAllByTargetSystemOrderByCreatedAtDesc(ExternalSystemType targetSystem);
 
-    List<OutboxMessage> findAllByStatusOrderByCreatedAtAsc(OutboxStatus status);
+  List<OutboxMessage> findAllByStatusOrderByCreatedAtAsc(OutboxStatus status);
 }

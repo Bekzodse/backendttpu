@@ -7,11 +7,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record OneCDepreciationRecordDto(
-        UUID itemId,
-        @NotBlank String inventoryNumber,
-        @NotBlank String oneCRefId,
-        @NotNull BigDecimal depreciatedAmount,
-        @NotNull BigDecimal residualValue,
-        @NotNull Instant periodDate
-) {
-}
+    UUID itemId,
+    @NotBlank String inventoryNumber,
+    @NotBlank String oneCRefId,
+    @NotNull BigDecimal depreciatedAmount,
+    @NotNull BigDecimal residualValue,
+    @NotNull Instant periodDate) {}

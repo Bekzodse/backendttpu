@@ -10,6 +10,7 @@ import uz.ttpu.inventory.finance.domain.DepreciationRecord;
 @Mapper
 public interface FinanceMapper {
 
-    @Mapping(target = "yearlySchedule", source = "yearlySchedule")
-    DepreciationForecastDto toDto(DepreciationRecord entity, List<YearlyDepreciationForecastDto> yearlySchedule);
+  @Mapping(target = "yearlySchedule", source = "yearlySchedule")
+  DepreciationForecastDto toDto(
+      DepreciationRecord entity, List<YearlyDepreciationForecastDto> yearlySchedule);
 }

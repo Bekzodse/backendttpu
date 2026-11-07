@@ -21,15 +21,15 @@ import uz.ttpu.inventory.common.domain.BaseReferenceEntity;
 @Table(name = "buildings")
 public class Building extends BaseReferenceEntity {
 
-    @Column(name = "code", nullable = false, unique = true, length = 50)
-    private String code;
+  @Column(name = "code", nullable = false, unique = true, length = 50)
+  private String code;
 
-    @Column(name = "name", nullable = false, length = 255)
-    private String name;
+  @Column(name = "name", nullable = false, length = 255)
+  private String name;
 
-    @Column(name = "address", length = 500)
-    private String address;
+  @Column(name = "address", length = 500)
+  private String address;
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
+  @Column(name = "description", columnDefinition = "TEXT")
+  private String description;
 }

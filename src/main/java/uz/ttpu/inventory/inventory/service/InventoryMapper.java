@@ -10,8 +10,8 @@ import uz.ttpu.inventory.inventory.domain.InventorySession;
 @Mapper
 public interface InventoryMapper {
 
-    InventorySessionDto toDto(InventorySession entity);
+  InventorySessionDto toDto(InventorySession entity);
 
-    @Mapping(target = "sessionId", source = "session.id")
-    InventoryExpectedItemDto toExpectedItemDto(InventoryExpectedItem entity);
+  @Mapping(target = "sessionId", source = "session.id")
+  InventoryExpectedItemDto toExpectedItemDto(InventoryExpectedItem entity);
 }

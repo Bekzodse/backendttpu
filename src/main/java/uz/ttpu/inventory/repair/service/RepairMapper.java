@@ -7,5 +7,5 @@ import uz.ttpu.inventory.repair.domain.RepairTicket;
 @Mapper(componentModel = "spring")
 public interface RepairMapper {
 
-    RepairTicketDto toDto(RepairTicket ticket);
+  RepairTicketDto toDto(RepairTicket ticket);
 }

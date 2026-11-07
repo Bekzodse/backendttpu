@@ -14,6 +14,6 @@ import org.hibernate.envers.Audited;
 @MappedSuperclass
 public abstract class BaseReferenceEntity extends BaseEntity {
 
-    @Column(name = "active", nullable = false)
-    private boolean active = true;
+  @Column(name = "active", nullable = false)
+  private boolean active = true;
 }

@@ -9,10 +9,8 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record ReceiptLineRequest(
-        @NotBlank @Size(max = 255) String name,
-        @NotNull UUID categoryId,
-        @NotBlank @Size(max = 150) String serialNumber,
-        @NotNull @DecimalMin("0.00") BigDecimal priceWithoutVat,
-        @Min(1) Integer quantity
-) {
-}
+    @NotBlank @Size(max = 255) String name,
+    @NotNull UUID categoryId,
+    @NotBlank @Size(max = 150) String serialNumber,
+    @NotNull @DecimalMin("0.00") BigDecimal priceWithoutVat,
+    @Min(1) Integer quantity) {}

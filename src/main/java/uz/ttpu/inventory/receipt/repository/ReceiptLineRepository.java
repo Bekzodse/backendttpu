@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import uz.ttpu.inventory.receipt.domain.ReceiptLine;
 
 public interface ReceiptLineRepository extends JpaRepository<ReceiptLine, UUID> {
-    boolean existsByCategoryIdAndSerialNumberIgnoreCase(UUID categoryId, String serialNumber);
-    List<ReceiptLine> findAllByReceiptId(UUID receiptId);
+  boolean existsByCategoryIdAndSerialNumberIgnoreCase(UUID categoryId, String serialNumber);
+
+  List<ReceiptLine> findAllByReceiptId(UUID receiptId);
 }

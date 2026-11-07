@@ -4,10 +4,8 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record ScanInventoryItemRequest(
-        UUID itemId,
-        String qrCode,
-        @NotNull UUID scannedRoomId,
-        @NotNull UUID scannedByEmployeeId,
-        String notes
-) {
-}
+    UUID itemId,
+    String qrCode,
+    @NotNull UUID scannedRoomId,
+    @NotNull UUID scannedByEmployeeId,
+    String notes) {}

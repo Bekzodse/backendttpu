@@ -10,8 +10,8 @@ import uz.ttpu.inventory.receipt.domain.ReceiptLine;
 @Mapper(componentModel = "spring")
 public interface ReceiptMapper {
 
-    ReceiptDto toDto(Receipt receipt);
+  ReceiptDto toDto(Receipt receipt);
 
-    @Mapping(target = "receiptId", source = "receipt.id")
-    ReceiptLineDto toLineDto(ReceiptLine line);
+  @Mapping(target = "receiptId", source = "receipt.id")
+  ReceiptLineDto toLineDto(ReceiptLine line);
 }

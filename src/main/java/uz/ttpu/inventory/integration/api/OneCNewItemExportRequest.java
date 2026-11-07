@@ -7,14 +7,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record OneCNewItemExportRequest(
-        @NotNull UUID itemId,
-        @NotBlank String inventoryNumber,
-        @NotBlank String name,
-        String serialNumber,
-        UUID categoryId,
-        @NotNull BigDecimal purchasePrice,
-        Instant commissionedAt,
-        UUID departmentId,
-        UUID custodianEmployeeId
-) {
-}
+    @NotNull UUID itemId,
+    @NotBlank String inventoryNumber,
+    @NotBlank String name,
+    String serialNumber,
+    UUID categoryId,
+    @NotNull BigDecimal purchasePrice,
+    Instant commissionedAt,
+    UUID departmentId,
+    UUID custodianEmployeeId) {}

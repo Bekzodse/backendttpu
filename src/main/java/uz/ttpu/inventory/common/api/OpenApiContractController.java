@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Hidden
 public class OpenApiContractController {
 
-    @GetMapping(value = "/openapi.yaml", produces = "application/vnd.oai.openapi")
-    public void getOpenApiYaml(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.getRequestDispatcher("/v3/api-docs.yaml").forward(request, response);
-    }
+  @GetMapping(value = "/openapi.yaml", produces = "application/vnd.oai.openapi")
+  public void getOpenApiYaml(HttpServletRequest request, HttpServletResponse response)
+      throws ServletException, IOException {
+    request.getRequestDispatcher("/v3/api-docs.yaml").forward(request, response);
+  }
 }

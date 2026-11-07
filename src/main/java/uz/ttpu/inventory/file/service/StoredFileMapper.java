@@ -7,5 +7,5 @@ import uz.ttpu.inventory.file.domain.StoredFileRecord;
 @Mapper
 public interface StoredFileMapper {
 
-    StoredFileDto toDto(StoredFileRecord entity);
+  StoredFileDto toDto(StoredFileRecord entity);
 }

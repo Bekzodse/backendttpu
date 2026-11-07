@@ -6,21 +6,19 @@ import java.util.UUID;
 import uz.ttpu.inventory.receipt.domain.ReceiptStatus;
 
 public record ReceiptDto(
-        UUID id,
-        String receiptNumber,
-        String contractNumber,
-        Instant contractDate,
-        String invoiceNumber,
-        Instant invoiceDate,
-        String supplierName,
-        String supplierTin,
-        ReceiptStatus status,
-        Instant receivedAt,
-        UUID warehouseBuildingId,
-        UUID receivedByEmployeeId,
-        String notes,
-        List<ReceiptLineDto> lines,
-        Instant createdAt,
-        Instant updatedAt
-) {
-}
+    UUID id,
+    String receiptNumber,
+    String contractNumber,
+    Instant contractDate,
+    String invoiceNumber,
+    Instant invoiceDate,
+    String supplierName,
+    String supplierTin,
+    ReceiptStatus status,
+    Instant receivedAt,
+    UUID warehouseBuildingId,
+    UUID receivedByEmployeeId,
+    String notes,
+    List<ReceiptLineDto> lines,
+    Instant createdAt,
+    Instant updatedAt) {}

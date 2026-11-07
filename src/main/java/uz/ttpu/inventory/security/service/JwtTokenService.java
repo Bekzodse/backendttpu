@@ -14,37 +14,45 @@ import uz.ttpu.inventory.security.domain.UserAccount;
 @RequiredArgsConstructor
 public class JwtTokenService {
 
-    private final JwtEncoder jwtEncoder;
-    private final SecurityProperties securityProperties;
+  private final JwtEncoder jwtEncoder;
+  private final SecurityProperties securityProperties;
 
-    public String generateAccessToken(UserAccount user, Instant issuedAt) {
-        Instant expiresAt = issuedAt.plus(securityProperties.getAccessTokenTtl());
-        List<String> roles = user.getRoles().stream().map(RoleName::name).sorted().toList();
-        List<String> permissions = user.getPermissions().stream().sorted().toList();
+  public String generateAccessToken(UserAccount user, Instant issuedAt) {
+    return generateAccessToken(user, issuedAt, null);
+  }
 
-        JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
-                .issuer(securityProperties.getIssuer())
-                .issuedAt(issuedAt)
-                .expiresAt(expiresAt)
-                .subject(user.getUsername())
-                .claim("user_id", user.getId().toString())
-                .claim("roles", roles)
-                .claim("permissions", permissions);
+  public String generateAccessToken(UserAccount user, Instant issuedAt, String deviceId) {
+    Instant expiresAt = issuedAt.plus(securityProperties.getAccessTokenTtl());
+    List<String> roles = user.getRoles().stream().map(RoleName::name).sorted().toList();
+    List<String> permissions = user.getPermissions().stream().sorted().toList();
 
-        if (user.getEmployeeId() != null) {
-            claimsBuilder.claim("employee_id", user.getEmployeeId().toString());
-        }
-        if (user.getDepartmentId() != null) {
-            claimsBuilder.claim("department_id", user.getDepartmentId().toString());
-        }
-        if (user.getBuildingId() != null) {
-            claimsBuilder.claim("building_id", user.getBuildingId().toString());
-        }
+    JwtClaimsSet.Builder claimsBuilder =
+        JwtClaimsSet.builder()
+            .issuer(securityProperties.getIssuer())
+            .issuedAt(issuedAt)
+            .expiresAt(expiresAt)
+            .subject(user.getUsername())
+            .claim("user_id", user.getId().toString())
+            .claim("roles", roles)
+            .claim("permissions", permissions);
 
-        return jwtEncoder.encode(JwtEncoderParameters.from(claimsBuilder.build())).getTokenValue();
+    if (deviceId != null && !deviceId.isBlank()) {
+      claimsBuilder.claim("deviceId", deviceId.trim());
+    }
+    if (user.getEmployeeId() != null) {
+      claimsBuilder.claim("employee_id", user.getEmployeeId().toString());
+    }
+    if (user.getDepartmentId() != null) {
+      claimsBuilder.claim("department_id", user.getDepartmentId().toString());
+    }
+    if (user.getBuildingId() != null) {
+      claimsBuilder.claim("building_id", user.getBuildingId().toString());
     }
 
-    public long getAccessTokenTtlSeconds() {
-        return securityProperties.getAccessTokenTtl().toSeconds();
-    }
+    return jwtEncoder.encode(JwtEncoderParameters.from(claimsBuilder.build())).getTokenValue();
+  }
+
+  public long getAccessTokenTtlSeconds() {
+    return securityProperties.getAccessTokenTtl().toSeconds();
+  }
 }

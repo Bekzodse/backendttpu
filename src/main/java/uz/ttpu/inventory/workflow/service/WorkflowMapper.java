@@ -14,13 +14,13 @@ import uz.ttpu.inventory.workflow.domain.WorkflowStepDefinition;
 @Mapper(componentModel = "spring")
 public interface WorkflowMapper {
 
-    WorkflowDefinitionDto toDefinitionDto(WorkflowDefinition definition);
+  WorkflowDefinitionDto toDefinitionDto(WorkflowDefinition definition);
 
-    WorkflowStepDefinitionDto toStepDefinitionDto(WorkflowStepDefinition stepDefinition);
+  WorkflowStepDefinitionDto toStepDefinitionDto(WorkflowStepDefinition stepDefinition);
 
-    @Mapping(target = "definitionId", source = "definition.id")
-    @Mapping(target = "definitionCode", source = "definition.code")
-    WorkflowInstanceDto toInstanceDto(WorkflowInstance instance);
+  @Mapping(target = "definitionId", source = "definition.id")
+  @Mapping(target = "definitionCode", source = "definition.code")
+  WorkflowInstanceDto toInstanceDto(WorkflowInstance instance);
 
-    WorkflowStepDecisionDto toDecisionDto(WorkflowStepDecision decision);
+  WorkflowStepDecisionDto toDecisionDto(WorkflowStepDecision decision);
 }

@@ -4,7 +4,7 @@ import uz.ttpu.inventory.notification.domain.NotificationChannel;
 
 public interface NotificationChannelSender {
 
-    NotificationChannel getChannel();
+  NotificationChannel getChannel();
 
-    void send(String recipient, String subject, String body);
+  void send(String recipient, String subject, String body);
 }

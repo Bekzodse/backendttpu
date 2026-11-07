@@ -7,12 +7,10 @@ import java.util.Map;
 import java.util.UUID;
 
 public record StartWorkflowInstanceRequest(
-        @NotBlank String definitionCode,
-        @NotNull UUID documentId,
-        String documentNumber,
-        BigDecimal amount,
-        Map<String, Object> contextAttributes,
-        UUID initiatedByUserId,
-        boolean submitImmediately
-) {
-}
+    @NotBlank String definitionCode,
+    @NotNull UUID documentId,
+    String documentNumber,
+    BigDecimal amount,
+    Map<String, Object> contextAttributes,
+    UUID initiatedByUserId,
+    boolean submitImmediately) {}

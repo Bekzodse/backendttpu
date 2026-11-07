@@ -7,5 +7,5 @@ import uz.ttpu.inventory.audit.domain.AuditRecord;
 @Mapper(componentModel = "spring")
 public interface AuditMapper {
 
-    AuditRecordDto toDto(AuditRecord record);
+  AuditRecordDto toDto(AuditRecord record);
 }

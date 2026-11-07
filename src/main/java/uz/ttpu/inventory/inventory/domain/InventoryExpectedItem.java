@@ -26,53 +26,54 @@ import uz.ttpu.inventory.common.domain.BaseEntity;
 @Builder
 @Entity
 @Table(
-        name = "inventory_expected_items",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_inventory_expected_items_session_item", columnNames = {"session_id", "item_id"})
-        }
-)
+    name = "inventory_expected_items",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_inventory_expected_items_session_item",
+          columnNames = {"session_id", "item_id"})
+    })
 public class InventoryExpectedItem extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
-    private InventorySession session;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "session_id", nullable = false)
+  private InventorySession session;
 
-    @Column(name = "room_id", nullable = false)
-    private UUID roomId;
+  @Column(name = "room_id", nullable = false)
+  private UUID roomId;
 
-    @Column(name = "item_id", nullable = false)
-    private UUID itemId;
+  @Column(name = "item_id", nullable = false)
+  private UUID itemId;
 
-    @Column(name = "inventory_number", nullable = false, length = 100)
-    private String inventoryNumber;
+  @Column(name = "inventory_number", nullable = false, length = 100)
+  private String inventoryNumber;
 
-    @Column(name = "qr_code", nullable = false, length = 32)
-    private String qrCode;
+  @Column(name = "qr_code", nullable = false, length = 32)
+  private String qrCode;
 
-    @Column(name = "item_name", nullable = false, length = 255)
-    private String itemName;
+  @Column(name = "item_name", nullable = false, length = 255)
+  private String itemName;
 
-    @Column(name = "custodian_employee_id")
-    private UUID custodianEmployeeId;
+  @Column(name = "custodian_employee_id")
+  private UUID custodianEmployeeId;
 
-    @Builder.Default
-    @Column(name = "book_value", nullable = false, precision = 18, scale = 2)
-    private BigDecimal bookValue = BigDecimal.ZERO;
+  @Builder.Default
+  @Column(name = "book_value", nullable = false, precision = 18, scale = 2)
+  private BigDecimal bookValue = BigDecimal.ZERO;
 
-    @Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "line_status", nullable = false, length = 32)
-    private InventoryLineStatus lineStatus = InventoryLineStatus.EXPECTED;
+  @Builder.Default
+  @Enumerated(EnumType.STRING)
+  @Column(name = "line_status", nullable = false, length = 32)
+  private InventoryLineStatus lineStatus = InventoryLineStatus.EXPECTED;
 
-    @Column(name = "scanned_room_id")
-    private UUID scannedRoomId;
+  @Column(name = "scanned_room_id")
+  private UUID scannedRoomId;
 
-    @Column(name = "scanned_by_employee_id")
-    private UUID scannedByEmployeeId;
+  @Column(name = "scanned_by_employee_id")
+  private UUID scannedByEmployeeId;
 
-    @Column(name = "scanned_at", columnDefinition = "TIMESTAMPTZ")
-    private Instant scannedAt;
+  @Column(name = "scanned_at", columnDefinition = "TIMESTAMPTZ")
+  private Instant scannedAt;
 
-    @Column(name = "notes", columnDefinition = "TEXT")
-    private String notes;
+  @Column(name = "notes", columnDefinition = "TEXT")
+  private String notes;
 }

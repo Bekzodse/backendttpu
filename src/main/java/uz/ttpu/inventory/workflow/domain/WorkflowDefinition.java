@@ -26,26 +26,26 @@ import uz.ttpu.inventory.common.domain.BaseReferenceEntity;
 @Table(name = "workflow_definitions")
 public class WorkflowDefinition extends BaseReferenceEntity {
 
-    @Column(name = "code", nullable = false, unique = true, length = 100)
-    private String code;
+  @Column(name = "code", nullable = false, unique = true, length = 100)
+  private String code;
 
-    @Column(name = "name", nullable = false, length = 255)
-    private String name;
+  @Column(name = "name", nullable = false, length = 255)
+  private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "document_type", nullable = false, length = 50)
-    private WorkflowDocumentType documentType;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "document_type", nullable = false, length = 50)
+  private WorkflowDocumentType documentType;
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
+  @Column(name = "description", columnDefinition = "TEXT")
+  private String description;
 
-    @Builder.Default
-    @OneToMany(mappedBy = "definition", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("stepOrder ASC")
-    private List<WorkflowStepDefinition> steps = new ArrayList<>();
+  @Builder.Default
+  @OneToMany(mappedBy = "definition", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("stepOrder ASC")
+  private List<WorkflowStepDefinition> steps = new ArrayList<>();
 
-    public void addStep(WorkflowStepDefinition step) {
-        this.steps.add(step);
-        step.setDefinition(this);
-    }
+  public void addStep(WorkflowStepDefinition step) {
+    this.steps.add(step);
+    step.setDefinition(this);
+  }
 }

@@ -23,36 +23,37 @@ import uz.ttpu.inventory.common.domain.BaseEntity;
 @Builder
 @Entity
 @Table(
-        name = "inventory_session_rooms",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_inventory_session_rooms_session_room", columnNames = {"session_id", "room_id"})
-        }
-)
+    name = "inventory_session_rooms",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_inventory_session_rooms_session_room",
+          columnNames = {"session_id", "room_id"})
+    })
 public class InventorySessionRoom extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
-    private InventorySession session;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "session_id", nullable = false)
+  private InventorySession session;
 
-    @Column(name = "room_id", nullable = false)
-    private UUID roomId;
+  @Column(name = "room_id", nullable = false)
+  private UUID roomId;
 
-    @Builder.Default
-    @Column(name = "expected_count", nullable = false)
-    private int expectedCount = 0;
+  @Builder.Default
+  @Column(name = "expected_count", nullable = false)
+  private int expectedCount = 0;
 
-    @Builder.Default
-    @Column(name = "found_count", nullable = false)
-    private int foundCount = 0;
+  @Builder.Default
+  @Column(name = "found_count", nullable = false)
+  private int foundCount = 0;
 
-    @Builder.Default
-    @Column(name = "not_found_count", nullable = false)
-    private int notFoundCount = 0;
+  @Builder.Default
+  @Column(name = "not_found_count", nullable = false)
+  private int notFoundCount = 0;
 
-    @Builder.Default
-    @Column(name = "completed", nullable = false)
-    private boolean completed = false;
+  @Builder.Default
+  @Column(name = "completed", nullable = false)
+  private boolean completed = false;
 
-    @Column(name = "completed_at", columnDefinition = "TIMESTAMPTZ")
-    private Instant completedAt;
+  @Column(name = "completed_at", columnDefinition = "TIMESTAMPTZ")
+  private Instant completedAt;
 }

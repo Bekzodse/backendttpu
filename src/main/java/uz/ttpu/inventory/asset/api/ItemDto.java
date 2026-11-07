@@ -9,41 +9,91 @@ import uz.ttpu.inventory.common.domain.BuildingScoped;
 import uz.ttpu.inventory.common.domain.DepartmentScoped;
 
 public record ItemDto(
-        UUID id,
-        String inventoryNumber,
-        String serialNumber,
-        String qrCode,
-        String name,
-        String description,
-        UUID categoryId,
-        ItemState state,
-        BigDecimal purchasePrice,
-        BigDecimal residualValue,
-        Instant commissionedAt,
-        Instant warrantyExpiresAt,
-        Instant expectedReturnAt,
-        UUID buildingId,
-        UUID floorId,
-        UUID roomId,
-        UUID departmentId,
-        UUID custodianEmployeeId,
-        Map<String, Object> customAttributes,
-        String oneCRefId,
-        Instant createdAt,
-        Instant updatedAt
-) implements DepartmentScoped, BuildingScoped {
+    UUID id,
+    String inventoryNumber,
+    String serialNumber,
+    String qrCode,
+    String name,
+    String description,
+    UUID categoryId,
+    ItemState state,
+    BigDecimal purchasePrice,
+    BigDecimal residualValue,
+    boolean replacementRecommended,
+    Instant commissionedAt,
+    Instant warrantyExpiresAt,
+    Instant expectedReturnAt,
+    UUID buildingId,
+    UUID floorId,
+    UUID roomId,
+    UUID departmentId,
+    UUID custodianEmployeeId,
+    Map<String, Object> customAttributes,
+    String oneCRefId,
+    Instant createdAt,
+    Instant updatedAt)
+    implements DepartmentScoped, BuildingScoped {
 
-    @Override
-    public UUID getDepartmentId() {
-        return departmentId;
-    }
+  public ItemDto(
+      UUID id,
+      String inventoryNumber,
+      String serialNumber,
+      String qrCode,
+      String name,
+      String description,
+      UUID categoryId,
+      ItemState state,
+      BigDecimal purchasePrice,
+      BigDecimal residualValue,
+      Instant commissionedAt,
+      Instant warrantyExpiresAt,
+      Instant expectedReturnAt,
+      UUID buildingId,
+      UUID floorId,
+      UUID roomId,
+      UUID departmentId,
+      UUID custodianEmployeeId,
+      Map<String, Object> customAttributes,
+      String oneCRefId,
+      Instant createdAt,
+      Instant updatedAt) {
+    this(
+        id,
+        inventoryNumber,
+        serialNumber,
+        qrCode,
+        name,
+        description,
+        categoryId,
+        state,
+        purchasePrice,
+        residualValue,
+        false,
+        commissionedAt,
+        warrantyExpiresAt,
+        expectedReturnAt,
+        buildingId,
+        floorId,
+        roomId,
+        departmentId,
+        custodianEmployeeId,
+        customAttributes,
+        oneCRefId,
+        createdAt,
+        updatedAt);
+  }
 
-    @Override
-    public UUID getBuildingId() {
-        return buildingId;
-    }
+  @Override
+  public UUID getDepartmentId() {
+    return departmentId;
+  }
 
-    public String stateName() {
-        return state != null ? state.name() : "";
-    }
+  @Override
+  public UUID getBuildingId() {
+    return buildingId;
+  }
+
+  public String stateName() {
+    return state != null ? state.name() : "";
+  }
 }

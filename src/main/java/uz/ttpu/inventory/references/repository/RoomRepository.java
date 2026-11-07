@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import uz.ttpu.inventory.references.domain.Room;
 
 public interface RoomRepository extends JpaRepository<Room, UUID>, JpaSpecificationExecutor<Room> {
-    List<Room> findAllByFloorIdAndActiveTrue(UUID floorId);
-    List<Room> findAllByDepartmentIdAndActiveTrue(UUID departmentId);
+  List<Room> findAllByFloorIdAndActiveTrue(UUID floorId);
+
+  List<Room> findAllByDepartmentIdAndActiveTrue(UUID departmentId);
 }

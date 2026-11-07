@@ -23,20 +23,21 @@ import uz.ttpu.inventory.common.domain.BaseReferenceEntity;
 @Audited
 @Entity
 @Table(
-        name = "floors",
-        uniqueConstraints = {
-            @UniqueConstraint(name = "uk_floors_building_number", columnNames = {"building_id", "floor_number"})
-        }
-)
+    name = "floors",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_floors_building_number",
+          columnNames = {"building_id", "floor_number"})
+    })
 public class Floor extends BaseReferenceEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "building_id", nullable = false)
-    private Building building;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "building_id", nullable = false)
+  private Building building;
 
-    @Column(name = "floor_number", nullable = false)
-    private Integer floorNumber;
+  @Column(name = "floor_number", nullable = false)
+  private Integer floorNumber;
 
-    @Column(name = "name", nullable = false, length = 100)
-    private String name;
+  @Column(name = "name", nullable = false, length = 100)
+  private String name;
 }

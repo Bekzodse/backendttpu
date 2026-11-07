@@ -1,5 +1,4 @@
 @org.springframework.modulith.ApplicationModule(
-        displayName = "Common",
-        type = org.springframework.modulith.ApplicationModule.Type.OPEN
-)
+    displayName = "Common",
+    type = org.springframework.modulith.ApplicationModule.Type.OPEN)
 package uz.ttpu.inventory.common;

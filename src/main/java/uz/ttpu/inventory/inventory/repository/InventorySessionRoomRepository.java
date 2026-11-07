@@ -8,7 +8,7 @@ import uz.ttpu.inventory.inventory.domain.InventorySessionRoom;
 
 public interface InventorySessionRoomRepository extends JpaRepository<InventorySessionRoom, UUID> {
 
-    List<InventorySessionRoom> findAllBySessionIdOrderByCreatedAtAsc(UUID sessionId);
+  List<InventorySessionRoom> findAllBySessionIdOrderByCreatedAtAsc(UUID sessionId);
 
-    Optional<InventorySessionRoom> findBySessionIdAndRoomId(UUID sessionId, UUID roomId);
+  Optional<InventorySessionRoom> findBySessionIdAndRoomId(UUID sessionId, UUID roomId);
 }

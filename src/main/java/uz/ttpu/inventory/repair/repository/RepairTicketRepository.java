@@ -9,6 +9,10 @@ import uz.ttpu.inventory.repair.domain.RepairTicket;
 import uz.ttpu.inventory.repair.domain.RepairTicketState;
 
 public interface RepairTicketRepository extends JpaRepository<RepairTicket, UUID> {
-    List<RepairTicket> findAllByItemIdOrderByCreatedAtDesc(UUID itemId);
-    List<RepairTicket> findAllByStateInAndExpectedReturnAtBefore(Collection<RepairTicketState> states, Instant now);
+  List<RepairTicket> findAllByItemIdOrderByCreatedAtDesc(UUID itemId);
+
+  List<RepairTicket> findAllByStateInAndExpectedReturnAtBefore(
+      Collection<RepairTicketState> states, Instant now);
+
+  List<RepairTicket> findAllByReplacementRecommendedTrue();
 }

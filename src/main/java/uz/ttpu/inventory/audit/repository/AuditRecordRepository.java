@@ -7,6 +7,7 @@ import uz.ttpu.inventory.audit.domain.AuditRecord;
 import uz.ttpu.inventory.common.domain.AuditActionType;
 
 public interface AuditRecordRepository extends JpaRepository<AuditRecord, UUID> {
-    List<AuditRecord> findAllByTargetIdOrderByOccurredAtDesc(String targetId);
-    List<AuditRecord> findAllByActionTypeOrderByOccurredAtDesc(AuditActionType actionType);
+  List<AuditRecord> findAllByTargetIdOrderByOccurredAtDesc(String targetId);
+
+  List<AuditRecord> findAllByActionTypeOrderByOccurredAtDesc(AuditActionType actionType);
 }

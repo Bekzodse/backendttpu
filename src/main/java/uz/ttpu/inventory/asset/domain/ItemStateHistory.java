@@ -23,27 +23,27 @@ import uz.ttpu.inventory.common.domain.BaseEntity;
 @Table(name = "item_state_history")
 public class ItemStateHistory extends BaseEntity {
 
-    @Column(name = "item_id", nullable = false)
-    private UUID itemId;
+  @Column(name = "item_id", nullable = false)
+  private UUID itemId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "from_state", nullable = false, length = 50)
-    private ItemState fromState;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "from_state", nullable = false, length = 50)
+  private ItemState fromState;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "to_state", nullable = false, length = 50)
-    private ItemState toState;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "to_state", nullable = false, length = 50)
+  private ItemState toState;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "event", nullable = false, length = 50)
-    private ItemEvent event;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "event", nullable = false, length = 50)
+  private ItemEvent event;
 
-    @Column(name = "document_type", nullable = false, length = 100)
-    private String documentType;
+  @Column(name = "document_type", nullable = false, length = 100)
+  private String documentType;
 
-    @Column(name = "document_ref", nullable = false, length = 255)
-    private String documentRef;
+  @Column(name = "document_ref", nullable = false, length = 255)
+  private String documentRef;
 
-    @Column(name = "transitioned_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
-    private Instant transitionedAt;
+  @Column(name = "transitioned_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
+  private Instant transitionedAt;
 }

@@ -8,14 +8,12 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record CreateAssetRequestDto(
-        @NotBlank String requestNumber,
-        @NotNull UUID categoryId,
-        @NotBlank String requestedItemName,
-        @Min(1) int quantity,
-        @NotNull @DecimalMin("0.00") BigDecimal estimatedUnitCost,
-        @NotNull UUID departmentId,
-        UUID buildingId,
-        @NotNull UUID requesterEmployeeId,
-        String justification
-) {
-}
+    @NotBlank String requestNumber,
+    @NotNull UUID categoryId,
+    @NotBlank String requestedItemName,
+    @Min(1) int quantity,
+    @NotNull @DecimalMin("0.00") BigDecimal estimatedUnitCost,
+    @NotNull UUID departmentId,
+    UUID buildingId,
+    @NotNull UUID requesterEmployeeId,
+    String justification) {}

@@ -7,17 +7,15 @@ import java.util.UUID;
 import uz.ttpu.inventory.inventory.domain.InventorySessionStatus;
 
 public record InventoryProgressDashboardDto(
-        UUID sessionId,
-        String sessionCode,
-        String rectorOrderNumber,
-        InventorySessionStatus status,
-        int totalRooms,
-        int completedRooms,
-        int totalExpectedItems,
-        int totalFoundItems,
-        int totalNotFoundItems,
-        BigDecimal overallCompletionPercentage,
-        List<RoomProgressDto> rooms,
-        Instant updatedAt
-) {
-}
+    UUID sessionId,
+    String sessionCode,
+    String rectorOrderNumber,
+    InventorySessionStatus status,
+    int totalRooms,
+    int completedRooms,
+    int totalExpectedItems,
+    int totalFoundItems,
+    int totalNotFoundItems,
+    BigDecimal overallCompletionPercentage,
+    List<RoomProgressDto> rooms,
+    Instant updatedAt) {}

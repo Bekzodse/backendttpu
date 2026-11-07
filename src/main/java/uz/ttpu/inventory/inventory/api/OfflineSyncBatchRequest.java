@@ -6,7 +6,4 @@ import java.util.List;
 import java.util.UUID;
 
 public record OfflineSyncBatchRequest(
-        UUID sessionId,
-        @NotEmpty List<@Valid OfflineScanActionRequest> actions
-) {
-}
+    UUID sessionId, @NotEmpty List<@Valid OfflineScanActionRequest> actions) {}

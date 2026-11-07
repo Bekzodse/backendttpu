@@ -7,5 +7,5 @@ import uz.ttpu.inventory.report.domain.ReportExportLog;
 @Mapper
 public interface ReportMapper {
 
-    ReportExportLogDto toDto(ReportExportLog entity);
+  ReportExportLogDto toDto(ReportExportLog entity);
 }

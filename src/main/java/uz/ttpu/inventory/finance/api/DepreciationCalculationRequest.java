@@ -8,12 +8,10 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record DepreciationCalculationRequest(
-        @NotNull UUID itemId,
-        @NotBlank String inventoryNumber,
-        @NotBlank String itemName,
-        @NotNull @DecimalMin("0.00") BigDecimal initialValue,
-        @DecimalMin("0.00") BigDecimal salvageValue,
-        @Min(1) int usefulLifeYears,
-        @Min(0) int elapsedYears
-) {
-}
+    @NotNull UUID itemId,
+    @NotBlank String inventoryNumber,
+    @NotBlank String itemName,
+    @NotNull @DecimalMin("0.00") BigDecimal initialValue,
+    @DecimalMin("0.00") BigDecimal salvageValue,
+    @Min(1) int usefulLifeYears,
+    @Min(0) int elapsedYears) {}

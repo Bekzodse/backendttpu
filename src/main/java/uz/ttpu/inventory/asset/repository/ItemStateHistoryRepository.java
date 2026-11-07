@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import uz.ttpu.inventory.asset.domain.ItemStateHistory;
 
 public interface ItemStateHistoryRepository extends JpaRepository<ItemStateHistory, UUID> {
-    List<ItemStateHistory> findAllByItemIdOrderByTransitionedAtDesc(UUID itemId);
+  List<ItemStateHistory> findAllByItemIdOrderByTransitionedAtDesc(UUID itemId);
 }

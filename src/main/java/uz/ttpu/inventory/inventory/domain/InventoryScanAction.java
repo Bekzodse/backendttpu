@@ -25,48 +25,49 @@ import uz.ttpu.inventory.common.domain.BaseEntity;
 @Builder
 @Entity
 @Table(
-        name = "inventory_scan_actions",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_inventory_scan_actions_client_action_id", columnNames = {"client_action_id"})
-        }
-)
+    name = "inventory_scan_actions",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_inventory_scan_actions_client_action_id",
+          columnNames = {"client_action_id"})
+    })
 public class InventoryScanAction extends BaseEntity {
 
-    @Column(name = "client_action_id", nullable = false, unique = true)
-    private UUID clientActionId;
+  @Column(name = "client_action_id", nullable = false, unique = true)
+  private UUID clientActionId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
-    private InventorySession session;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "session_id", nullable = false)
+  private InventorySession session;
 
-    @Column(name = "scanned_room_id", nullable = false)
-    private UUID scannedRoomId;
+  @Column(name = "scanned_room_id", nullable = false)
+  private UUID scannedRoomId;
 
-    @Column(name = "scanned_by_employee_id", nullable = false)
-    private UUID scannedByEmployeeId;
+  @Column(name = "scanned_by_employee_id", nullable = false)
+  private UUID scannedByEmployeeId;
 
-    @Column(name = "expected_room_id")
-    private UUID expectedRoomId;
+  @Column(name = "expected_room_id")
+  private UUID expectedRoomId;
 
-    @Column(name = "item_id")
-    private UUID itemId;
+  @Column(name = "item_id")
+  private UUID itemId;
 
-    @Column(name = "inventory_number", length = 100)
-    private String inventoryNumber;
+  @Column(name = "inventory_number", length = 100)
+  private String inventoryNumber;
 
-    @Column(name = "qr_code", length = 100)
-    private String qrCode;
+  @Column(name = "qr_code", length = 100)
+  private String qrCode;
 
-    @Column(name = "item_name", length = 255)
-    private String itemName;
+  @Column(name = "item_name", length = 255)
+  private String itemName;
 
-    @Column(name = "scanned_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
-    private Instant scannedAt;
+  @Column(name = "scanned_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
+  private Instant scannedAt;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "reconciliation_category", nullable = false, length = 64)
-    private ReconciliationCategory reconciliationCategory;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "reconciliation_category", nullable = false, length = 64)
+  private ReconciliationCategory reconciliationCategory;
 
-    @Column(name = "notes", columnDefinition = "TEXT")
-    private String notes;
+  @Column(name = "notes", columnDefinition = "TEXT")
+  private String notes;
 }

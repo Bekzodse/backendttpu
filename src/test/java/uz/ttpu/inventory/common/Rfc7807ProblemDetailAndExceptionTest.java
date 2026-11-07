@@ -22,78 +22,75 @@ import uz.ttpu.inventory.common.domain.ResourceNotFoundException;
 
 class Rfc7807ProblemDetailAndExceptionTest {
 
-    @Test
-    void allErrorCodesProvideUzbekRussianAndEnglishTranslationsAndProblemDetailProperties() {
-        for (ErrorCode code : ErrorCode.values()) {
-            assertThat(code.getMessageUz()).isNotBlank();
-            assertThat(code.getMessageRu()).isNotBlank();
-            assertThat(code.getMessageEn()).isNotBlank();
+  @Test
+  void allErrorCodesProvideUzbekRussianAndEnglishTranslationsAndProblemDetailProperties() {
+    for (ErrorCode code : ErrorCode.values()) {
+      assertThat(code.getMessageUz()).isNotBlank();
+      assertThat(code.getMessageRu()).isNotBlank();
+      assertThat(code.getMessageEn()).isNotBlank();
 
-            assertThat(code.resolveMessage(Locale.forLanguageTag("uz-UZ"))).isEqualTo(code.getMessageUz());
-            assertThat(code.resolveMessage(Locale.forLanguageTag("ru-RU"))).isEqualTo(code.getMessageRu());
-            assertThat(code.resolveMessage(Locale.forLanguageTag("en-US"))).isEqualTo(code.getMessageEn());
+      assertThat(code.resolveMessage(Locale.forLanguageTag("uz-UZ")))
+          .isEqualTo(code.getMessageUz());
+      assertThat(code.resolveMessage(Locale.forLanguageTag("ru-RU")))
+          .isEqualTo(code.getMessageRu());
+      assertThat(code.resolveMessage(Locale.forLanguageTag("en-US")))
+          .isEqualTo(code.getMessageEn());
 
-            ProblemDetail pd = ProblemDetailFactory.create(
-                    code,
-                    null,
-                    Locale.forLanguageTag("ru"),
-                    URI.create("/api/v1/test")
-            );
-            assertThat(pd.getStatus()).isEqualTo(code.getStatus().value());
-            assertThat(pd.getTitle()).isEqualTo(code.getTitle());
-            assertThat(pd.getProperties()).containsEntry("errorCode", code.name());
-            assertThat(pd.getProperties()).containsEntry("localizedMessage", code.getMessageRu());
+      ProblemDetail pd =
+          ProblemDetailFactory.create(
+              code, null, Locale.forLanguageTag("ru"), URI.create("/api/v1/test"));
+      assertThat(pd.getStatus()).isEqualTo(code.getStatus().value());
+      assertThat(pd.getTitle()).isEqualTo(code.getTitle());
+      assertThat(pd.getProperties()).containsEntry("errorCode", code.name());
+      assertThat(pd.getProperties()).containsEntry("localizedMessage", code.getMessageRu());
 
-            @SuppressWarnings("unchecked")
-            Map<String, String> messages = (Map<String, String>) pd.getProperties().get("messages");
-            assertThat(messages)
-                    .containsEntry("uz", code.getMessageUz())
-                    .containsEntry("ru", code.getMessageRu())
-                    .containsEntry("en", code.getMessageEn());
-        }
+      @SuppressWarnings("unchecked")
+      Map<String, String> messages = (Map<String, String>) pd.getProperties().get("messages");
+      assertThat(messages)
+          .containsEntry("uz", code.getMessageUz())
+          .containsEntry("ru", code.getMessageRu())
+          .containsEntry("en", code.getMessageEn());
     }
+  }
 
-    @Test
-    void globalExceptionHandlerMapsStandardExceptionsToRfc7807ProblemJson() {
-        GlobalExceptionHandler handler = new GlobalExceptionHandler();
-        MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/v1/assets/123");
-        req.addPreferredLocale(Locale.forLanguageTag("en-US"));
+  @Test
+  void globalExceptionHandlerMapsStandardExceptionsToRfc7807ProblemJson() {
+    GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/v1/assets/123");
+    req.addPreferredLocale(Locale.forLanguageTag("en-US"));
 
-        ResponseEntity<ProblemDetail> notFound = handler.handleResourceNotFound(
-                new ResourceNotFoundException("Item", UUID.randomUUID()), req
-        );
-        assertThat(notFound.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(notFound.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
-        assertThat(notFound.getBody().getProperties()).containsEntry("errorCode", "ERR_RESOURCE_NOT_FOUND");
+    ResponseEntity<ProblemDetail> notFound =
+        handler.handleResourceNotFound(
+            new ResourceNotFoundException("Item", UUID.randomUUID()), req);
+    assertThat(notFound.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(notFound.getHeaders().getContentType())
+        .isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+    assertThat(notFound.getBody().getProperties())
+        .containsEntry("errorCode", "ERR_RESOURCE_NOT_FOUND");
 
-        ResponseEntity<ProblemDetail> badReq = handler.handleIllegalArgument(
-                new IllegalArgumentException("Invalid parameter"), req
-        );
-        assertThat(badReq.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(badReq.getBody().getProperties()).containsEntry("errorCode", "ERR_BAD_REQUEST");
+    ResponseEntity<ProblemDetail> badReq =
+        handler.handleIllegalArgument(new IllegalArgumentException("Invalid parameter"), req);
+    assertThat(badReq.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(badReq.getBody().getProperties()).containsEntry("errorCode", "ERR_BAD_REQUEST");
 
-        ResponseEntity<ProblemDetail> conflict = handler.handleIllegalState(
-                new IllegalStateException("State conflict"), req
-        );
-        assertThat(conflict.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(conflict.getBody().getProperties()).containsEntry("errorCode", "ERR_STATE_CONFLICT");
+    ResponseEntity<ProblemDetail> conflict =
+        handler.handleIllegalState(new IllegalStateException("State conflict"), req);
+    assertThat(conflict.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    assertThat(conflict.getBody().getProperties()).containsEntry("errorCode", "ERR_STATE_CONFLICT");
 
-        ResponseEntity<ProblemDetail> unauth = handler.handleBadCredentials(
-                new BadCredentialsException("Invalid credentials"), req
-        );
-        assertThat(unauth.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(unauth.getBody().getProperties()).containsEntry("errorCode", "ERR_AUTH_FAILED");
+    ResponseEntity<ProblemDetail> unauth =
+        handler.handleBadCredentials(new BadCredentialsException("Invalid credentials"), req);
+    assertThat(unauth.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    assertThat(unauth.getBody().getProperties()).containsEntry("errorCode", "ERR_AUTH_FAILED");
 
-        ResponseEntity<ProblemDetail> locked = handler.handleLockedOrDisabled(
-                new LockedException("Account locked"), req
-        );
-        assertThat(locked.getStatusCode().value()).isEqualTo(423);
-        assertThat(locked.getBody().getProperties()).containsEntry("errorCode", "ERR_ACCOUNT_LOCKED");
+    ResponseEntity<ProblemDetail> locked =
+        handler.handleLockedOrDisabled(new LockedException("Account locked"), req);
+    assertThat(locked.getStatusCode().value()).isEqualTo(423);
+    assertThat(locked.getBody().getProperties()).containsEntry("errorCode", "ERR_ACCOUNT_LOCKED");
 
-        ResponseEntity<ProblemDetail> forbidden = handler.handleAccessDenied(
-                new AccessDeniedException("Access denied"), req
-        );
-        assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(forbidden.getBody().getProperties()).containsEntry("errorCode", "ERR_ACCESS_DENIED");
-    }
+    ResponseEntity<ProblemDetail> forbidden =
+        handler.handleAccessDenied(new AccessDeniedException("Access denied"), req);
+    assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(forbidden.getBody().getProperties()).containsEntry("errorCode", "ERR_ACCESS_DENIED");
+  }
 }

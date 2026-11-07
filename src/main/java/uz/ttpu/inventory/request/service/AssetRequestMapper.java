@@ -7,5 +7,5 @@ import uz.ttpu.inventory.request.domain.AssetRequest;
 @Mapper
 public interface AssetRequestMapper {
 
-    AssetRequestDto toDto(AssetRequest entity);
+  AssetRequestDto toDto(AssetRequest entity);
 }

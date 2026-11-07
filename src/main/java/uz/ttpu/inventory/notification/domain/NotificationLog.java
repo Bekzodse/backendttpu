@@ -23,33 +23,33 @@ import uz.ttpu.inventory.common.domain.BaseEntity;
 @Table(name = "notification_logs")
 public class NotificationLog extends BaseEntity {
 
-    @Column(name = "event_type", nullable = false, length = 150)
-    private String eventType;
+  @Column(name = "event_type", nullable = false, length = 150)
+  private String eventType;
 
-    @Column(name = "reference_id")
-    private UUID referenceId;
+  @Column(name = "reference_id")
+  private UUID referenceId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "channel", nullable = false, length = 32)
-    private NotificationChannel channel;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "channel", nullable = false, length = 32)
+  private NotificationChannel channel;
 
-    @Column(name = "recipient", nullable = false, length = 255)
-    private String recipient;
+  @Column(name = "recipient", nullable = false, length = 255)
+  private String recipient;
 
-    @Column(name = "subject", nullable = false, length = 255)
-    private String subject;
+  @Column(name = "subject", nullable = false, length = 255)
+  private String subject;
 
-    @Column(name = "message_body", nullable = false, columnDefinition = "TEXT")
-    private String messageBody;
+  @Column(name = "message_body", nullable = false, columnDefinition = "TEXT")
+  private String messageBody;
 
-    @Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 32)
-    private NotificationStatus status = NotificationStatus.PENDING;
+  @Builder.Default
+  @Enumerated(EnumType.STRING)
+  @Column(name = "status", nullable = false, length = 32)
+  private NotificationStatus status = NotificationStatus.PENDING;
 
-    @Column(name = "error_message", columnDefinition = "TEXT")
-    private String errorMessage;
+  @Column(name = "error_message", columnDefinition = "TEXT")
+  private String errorMessage;
 
-    @Column(name = "sent_at", columnDefinition = "TIMESTAMPTZ")
-    private Instant sentAt;
+  @Column(name = "sent_at", columnDefinition = "TIMESTAMPTZ")
+  private Instant sentAt;
 }

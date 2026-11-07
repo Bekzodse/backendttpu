@@ -9,7 +9,8 @@ import uz.ttpu.inventory.notification.domain.NotificationStatus;
 
 public interface NotificationLogRepository extends JpaRepository<NotificationLog, UUID> {
 
-    List<NotificationLog> findAllByReferenceIdOrderByCreatedAtDesc(UUID referenceId);
+  List<NotificationLog> findAllByReferenceIdOrderByCreatedAtDesc(UUID referenceId);
 
-    List<NotificationLog> findAllByChannelAndStatus(NotificationChannel channel, NotificationStatus status);
+  List<NotificationLog> findAllByChannelAndStatus(
+      NotificationChannel channel, NotificationStatus status);
 }

@@ -11,8 +11,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 @EnableJpaAuditing(dateTimeProviderRef = "utcDateTimeProvider")
 public class JpaAuditingConfig {
 
-    @Bean
-    public DateTimeProvider utcDateTimeProvider() {
-        return () -> Optional.of(Instant.now());
-    }
+  @Bean
+  public DateTimeProvider utcDateTimeProvider() {
+    return () -> Optional.of(Instant.now());
+  }
 }

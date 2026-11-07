@@ -6,11 +6,9 @@ import java.util.UUID;
 import uz.ttpu.inventory.notification.domain.NotificationChannel;
 
 public record SendNotificationRequest(
-        @NotNull NotificationChannel channel,
-        @NotBlank String recipient,
-        @NotBlank String subject,
-        @NotBlank String messageBody,
-        String eventType,
-        UUID referenceId
-) {
-}
+    @NotNull NotificationChannel channel,
+    @NotBlank String recipient,
+    @NotBlank String subject,
+    @NotBlank String messageBody,
+    String eventType,
+    UUID referenceId) {}

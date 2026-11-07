@@ -22,41 +22,41 @@ import uz.ttpu.inventory.common.domain.BaseEntity;
 @Table(name = "depreciation_records")
 public class DepreciationRecord extends BaseEntity {
 
-    @Column(name = "item_id", nullable = false)
-    private UUID itemId;
+  @Column(name = "item_id", nullable = false)
+  private UUID itemId;
 
-    @Column(name = "inventory_number", nullable = false, length = 100)
-    private String inventoryNumber;
+  @Column(name = "inventory_number", nullable = false, length = 100)
+  private String inventoryNumber;
 
-    @Column(name = "item_name", nullable = false, length = 255)
-    private String itemName;
+  @Column(name = "item_name", nullable = false, length = 255)
+  private String itemName;
 
-    @Column(name = "initial_value", nullable = false, precision = 18, scale = 2)
-    private BigDecimal initialValue;
+  @Column(name = "initial_value", nullable = false, precision = 18, scale = 2)
+  private BigDecimal initialValue;
 
-    @Builder.Default
-    @Column(name = "salvage_value", nullable = false, precision = 18, scale = 2)
-    private BigDecimal salvageValue = BigDecimal.ZERO;
+  @Builder.Default
+  @Column(name = "salvage_value", nullable = false, precision = 18, scale = 2)
+  private BigDecimal salvageValue = BigDecimal.ZERO;
 
-    @Column(name = "useful_life_years", nullable = false)
-    private int usefulLifeYears;
+  @Column(name = "useful_life_years", nullable = false)
+  private int usefulLifeYears;
 
-    @Column(name = "depreciable_base", nullable = false, precision = 18, scale = 2)
-    private BigDecimal depreciableBase;
+  @Column(name = "depreciable_base", nullable = false, precision = 18, scale = 2)
+  private BigDecimal depreciableBase;
 
-    @Column(name = "annual_depreciation", nullable = false, precision = 18, scale = 2)
-    private BigDecimal annualDepreciation;
+  @Column(name = "annual_depreciation", nullable = false, precision = 18, scale = 2)
+  private BigDecimal annualDepreciation;
 
-    @Column(name = "monthly_depreciation", nullable = false, precision = 18, scale = 2)
-    private BigDecimal monthlyDepreciation;
+  @Column(name = "monthly_depreciation", nullable = false, precision = 18, scale = 2)
+  private BigDecimal monthlyDepreciation;
 
-    @Builder.Default
-    @Column(name = "accumulated_depreciation", nullable = false, precision = 18, scale = 2)
-    private BigDecimal accumulatedDepreciation = BigDecimal.ZERO;
+  @Builder.Default
+  @Column(name = "accumulated_depreciation", nullable = false, precision = 18, scale = 2)
+  private BigDecimal accumulatedDepreciation = BigDecimal.ZERO;
 
-    @Column(name = "net_book_value", nullable = false, precision = 18, scale = 2)
-    private BigDecimal netBookValue;
+  @Column(name = "net_book_value", nullable = false, precision = 18, scale = 2)
+  private BigDecimal netBookValue;
 
-    @Column(name = "calculated_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
-    private Instant calculatedAt;
+  @Column(name = "calculated_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
+  private Instant calculatedAt;
 }

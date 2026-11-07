@@ -5,7 +5,4 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record StartInProgressRepairRequest(
-        @NotNull UUID assignedTechnicianEmployeeId,
-        Instant expectedReturnAt
-) {
-}
+    @NotNull UUID assignedTechnicianEmployeeId, Instant expectedReturnAt) {}

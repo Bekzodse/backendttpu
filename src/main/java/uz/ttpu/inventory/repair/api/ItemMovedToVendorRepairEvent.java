@@ -5,13 +5,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record ItemMovedToVendorRepairEvent(
-        UUID ticketId,
-        String ticketNumber,
-        UUID itemId,
-        String vendorName,
-        String vendorContractNumber,
-        BigDecimal estimatedCost,
-        Instant expectedReturnAt,
-        Instant occurredAt
-) {
-}
+    UUID ticketId,
+    String ticketNumber,
+    UUID itemId,
+    String vendorName,
+    String vendorContractNumber,
+    BigDecimal estimatedCost,
+    Instant expectedReturnAt,
+    Instant occurredAt) {}

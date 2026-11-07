@@ -8,7 +8,7 @@ import uz.ttpu.inventory.file.domain.StoredFileRecord;
 
 public interface StoredFileRecordRepository extends JpaRepository<StoredFileRecord, UUID> {
 
-    Optional<StoredFileRecord> findByFileKey(String fileKey);
+  Optional<StoredFileRecord> findByFileKey(String fileKey);
 
-    List<StoredFileRecord> findAllByReferenceEntityIdOrderByUploadedAtDesc(UUID referenceEntityId);
+  List<StoredFileRecord> findAllByReferenceEntityIdOrderByUploadedAtDesc(UUID referenceEntityId);
 }

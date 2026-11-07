@@ -9,7 +9,7 @@ import uz.ttpu.inventory.asset.domain.ItemStateHistory;
 @Mapper(componentModel = "spring")
 public interface ItemMapper {
 
-    ItemDto toDto(Item item);
+  ItemDto toDto(Item item);
 
-    ItemStateHistoryDto toHistoryDto(ItemStateHistory history);
+  ItemStateHistoryDto toHistoryDto(ItemStateHistory history);
 }

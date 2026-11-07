@@ -26,60 +26,66 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  @Column(name = "id", updatable = false, nullable = false)
+  private UUID id;
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMPTZ")
-    private Instant createdAt;
+  @CreatedDate
+  @Column(
+      name = "created_at",
+      nullable = false,
+      updatable = false,
+      columnDefinition = "TIMESTAMPTZ")
+  private Instant createdAt;
 
-    @LastModifiedDate
-    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
-    private Instant updatedAt;
+  @LastModifiedDate
+  @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
+  private Instant updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        Instant now = Instant.now();
-        if (this.createdAt == null) {
-            this.createdAt = now;
-        }
-        if (this.updatedAt == null) {
-            this.updatedAt = now;
-        }
+  @PrePersist
+  protected void onCreate() {
+    Instant now = Instant.now();
+    if (this.createdAt == null) {
+      this.createdAt = now;
     }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = Instant.now();
+    if (this.updatedAt == null) {
+      this.updatedAt = now;
     }
+  }
 
-    @Override
-    public final boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null) {
-            return false;
-        }
-        Class<?> oEffectiveClass = o instanceof HibernateProxy proxy
-                ? proxy.getHibernateLazyInitializer().getPersistentClass()
-                : o.getClass();
-        Class<?> thisEffectiveClass = this instanceof HibernateProxy proxy
-                ? proxy.getHibernateLazyInitializer().getPersistentClass()
-                : this.getClass();
-        if (thisEffectiveClass != oEffectiveClass) {
-            return false;
-        }
-        BaseEntity that = (BaseEntity) o;
-        return getId() != null && Objects.equals(getId(), that.getId());
-    }
+  @PreUpdate
+  protected void onUpdate() {
+    this.updatedAt = Instant.now();
+  }
 
-    @Override
-    public final int hashCode() {
-        return this instanceof HibernateProxy proxy
-                ? proxy.getHibernateLazyInitializer().getPersistentClass().hashCode()
-                : getClass().hashCode();
+  @Override
+  public final boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
+    if (o == null) {
+      return false;
+    }
+    Class<?> oEffectiveClass =
+        o instanceof HibernateProxy proxy
+            ? proxy.getHibernateLazyInitializer().getPersistentClass()
+            : o.getClass();
+    Class<?> thisEffectiveClass =
+        this instanceof HibernateProxy proxy
+            ? proxy.getHibernateLazyInitializer().getPersistentClass()
+            : this.getClass();
+    if (thisEffectiveClass != oEffectiveClass) {
+      return false;
+    }
+    BaseEntity that = (BaseEntity) o;
+    return getId() != null && Objects.equals(getId(), that.getId());
+  }
+
+  @Override
+  public final int hashCode() {
+    return this instanceof HibernateProxy proxy
+        ? proxy.getHibernateLazyInitializer().getPersistentClass().hashCode()
+        : getClass().hashCode();
+  }
 }

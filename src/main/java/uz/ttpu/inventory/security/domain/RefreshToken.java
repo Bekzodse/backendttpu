@@ -23,30 +23,30 @@ import uz.ttpu.inventory.common.domain.BaseEntity;
 @Table(name = "refresh_tokens")
 public class RefreshToken extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserAccount user;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
+  private UserAccount user;
 
-    @Column(name = "token_hash", nullable = false, unique = true, length = 128)
-    private String tokenHash;
+  @Column(name = "token_hash", nullable = false, unique = true, length = 128)
+  private String tokenHash;
 
-    @Column(name = "expires_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
-    private Instant expiresAt;
+  @Column(name = "expires_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
+  private Instant expiresAt;
 
-    @Builder.Default
-    @Column(name = "revoked", nullable = false)
-    private boolean revoked = false;
+  @Builder.Default
+  @Column(name = "revoked", nullable = false)
+  private boolean revoked = false;
 
-    @Column(name = "revoked_at", columnDefinition = "TIMESTAMPTZ")
-    private Instant revokedAt;
+  @Column(name = "revoked_at", columnDefinition = "TIMESTAMPTZ")
+  private Instant revokedAt;
 
-    @Column(name = "user_agent", length = 255)
-    private String userAgent;
+  @Column(name = "user_agent", length = 255)
+  private String userAgent;
 
-    @Column(name = "ip_address", length = 64)
-    private String ipAddress;
+  @Column(name = "ip_address", length = 64)
+  private String ipAddress;
 
-    public boolean isExpired(Instant now) {
-        return expiresAt.isBefore(now);
-    }
+  public boolean isExpired(Instant now) {
+    return expiresAt.isBefore(now);
+  }
 }

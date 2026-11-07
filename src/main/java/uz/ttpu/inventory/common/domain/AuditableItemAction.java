@@ -10,5 +10,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface AuditableItemAction {
-    AuditActionType value();
+  AuditActionType value();
 }

@@ -7,5 +7,5 @@ import uz.ttpu.inventory.security.domain.UserAccount;
 @Mapper(componentModel = "spring")
 public interface UserSecurityMapper {
 
-    UserPrincipalDto toPrincipalDto(UserAccount userAccount);
+  UserPrincipalDto toPrincipalDto(UserAccount userAccount);
 }

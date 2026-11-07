@@ -5,10 +5,9 @@ import uz.ttpu.inventory.integration.domain.ExternalSystemType;
 
 public interface ExternalSystemGateway {
 
-    ExternalDispatchResponse dispatch(
-            ExternalSystemType targetSystem,
-            String endpointUrl,
-            String httpMethod,
-            Map<String, Object> payload
-    );
+  ExternalDispatchResponse dispatch(
+      ExternalSystemType targetSystem,
+      String endpointUrl,
+      String httpMethod,
+      Map<String, Object> payload);
 }
