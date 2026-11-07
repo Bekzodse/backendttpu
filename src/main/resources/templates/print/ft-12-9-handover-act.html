@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title th:text="${formCode + ' - Handover Act (Dalolatnoma)'}">FT-12.9 - Handover Act</title>
+    <style type="text/css">
+        @page { size: A4 portrait; margin: 18mm 15mm 18mm 15mm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #1a202c; }
+        .header-right { text-align: right; font-size: 8.5pt; color: #4a5568; margin-bottom: 8px; }
+        .org-title { text-align: center; font-weight: bold; font-size: 12pt; margin-bottom: 4px; }
+        .doc-title { text-align: center; font-weight: bold; font-size: 13pt; margin-top: 8px; margin-bottom: 4px; text-transform: uppercase; }
+        .doc-subtitle { text-align: center; font-size: 9.5pt; margin-bottom: 14px; color: #2d3748; }
+        table.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+        table.meta-table td { padding: 5px 8px; border: 1px solid #cbd5e0; font-size: 9.5pt; }
+        table.meta-table td.label { font-weight: bold; background-color: #f7fafc; width: 32%; }
+        table.items-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        table.items-table th { background-color: #edf2f7; border: 1px solid #a0aec0; padding: 6px; font-size: 9pt; text-align: left; }
+        table.items-table td { border: 1px solid #cbd5e0; padding: 6px; font-size: 9pt; }
+        .section-heading { font-weight: bold; font-size: 10.5pt; margin-top: 12px; margin-bottom: 6px; }
+        .eimzo-box { border: 1.5px solid #2b6cb0; background-color: #ebf8ff; padding: 10px; margin-top: 16px; }
+        .eimzo-title { font-weight: bold; color: #2b6cb0; font-size: 10pt; margin-bottom: 6px; }
+        .footer-note { margin-top: 18px; font-size: 8pt; color: #718096; border-top: 1px solid #e2e8f0; padding-top: 6px; }
+    </style>
+</head>
+<body>
+    <div class="header-right">
+        Official Print Form: <strong th:text="${formCode}">FT-12.9</strong><br />
+        Turin Polytechnic University in Tashkent (TTPU) — "Raqamli Inventar" ERP
+    </div>
+
+    <div class="org-title">TOSHKENT SHAHRIDAGI TURIN POLITEXNIKA UNIVERSITETI (TTPU)</div>
+    <div class="doc-title">TOPSHIRISH-QABUL QILISH DALOLATNOMASI (HANDOVER ACT)</div>
+    <div class="doc-subtitle">
+        Document No: <strong th:text="${req.documentNumber()}">ACT-001</strong> |
+        Movement Type: <strong th:text="${req.movementType()}">ISSUE</strong> |
+        Operation ID: <span th:text="${req.operationId()}">00000000-0000-0000-0000-000000000000</span>
+    </div>
+
+    <table class="meta-table">
+        <tr>
+            <td class="label">Operation Status / Event</td>
+            <td th:text="${req.eventType()}">ISSUE_ACCEPTED</td>
+            <td class="label">2FA TOTP Confirmed</td>
+            <td th:text="${req.totpVerified() ? 'YES (Verified)' : 'PENDING'}">YES (Verified)</td>
+        </tr>
+        <tr>
+            <td class="label">From Department / Room</td>
+            <td th:text="${(req.fromDepartmentId() != null ? req.fromDepartmentId() : 'Warehouse') + ' / ' + (req.fromRoomId() != null ? req.fromRoomId() : 'Central Storage')}">Warehouse</td>
+            <td class="label">To Department / Room</td>
+            <td th:text="${(req.toDepartmentId() != null ? req.toDepartmentId() : '-') + ' / ' + (req.toRoomId() != null ? req.toRoomId() : '-')}">Target Room</td>
+        </tr>
+        <tr>
+            <td class="label">Handed Over By (Sender)</td>
+            <td th:text="${req.fromEmployeeId() != null ? req.fromEmployeeId() : req.actorEmployeeId()}">Sender</td>
+            <td class="label">Received By (Recipient)</td>
+            <td th:text="${req.toEmployeeId()}">Recipient</td>
+        </tr>
+        <tr>
+            <td class="label">Recorded Timestamp (UTC)</td>
+            <td th:text="${req.recordedAt()}">2026-11-07T10:00:00Z</td>
+            <td class="label">Reason / Notes</td>
+            <td th:text="${req.reason() != null ? req.reason() : '-'}">-</td>
+        </tr>
+    </table>
+
+    <div class="section-heading">1. Transferred Asset Specification</div>
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Inventory Number</th>
+                <th>QR Code</th>
+                <th>Asset Name</th>
+                <th>Serial Number</th>
+                <th>Lifecycle State</th>
+                <th>Book Value (UZS)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td th:text="${req.inventoryNumber()}">TTPU-INV-0001</td>
+                <td th:text="${req.qrCode()}">JBSWY3DPEB</td>
+                <td th:text="${req.itemName()}">Workstation</td>
+                <td th:text="${req.serialNumber() != null ? req.serialNumber() : '-'}">SN-001</td>
+                <td th:text="${req.itemState()}">FOYDALANISHDA</td>
+                <td th:text="${req.bookValue() != null ? req.bookValue() : '0.00'}">25000000.00</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="eimzo-box">
+        <div class="eimzo-title">E-IMZO PKCS#7 Digital Signature Verification Seal</div>
+        <div th:if="${signatures == null or signatures.isEmpty()}">
+            Status: <strong>AWAITING E-IMZO SIGNATURE OR TOTP-SIGNED ONLY</strong>
+        </div>
+        <table class="items-table" th:if="${signatures != null and !signatures.isEmpty()}">
+            <thead>
+                <tr>
+                    <th>PKCS#7 Signature ID</th>
+                    <th>Signer Full Name</th>
+                    <th>PINFL / TIN</th>
+                    <th>Certificate Serial</th>
+                    <th>PDF SHA-256</th>
+                    <th>Verified At (UTC)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="sig : ${signatures}">
+                    <td th:text="${sig.pkcs7SignatureId()}">EIMZO-PKCS7-001</td>
+                    <td th:text="${sig.signerFullName()}">Signer Name</td>
+                    <td th:text="${sig.signerPinfl() + ' / ' + (sig.signerTin() != null ? sig.signerTin() : '-')}">30101800010014</td>
+                    <td th:text="${sig.certificateSerialNumber()}">CERT-001</td>
+                    <td th:text="${sig.pdfSha256Hash()}">sha256</td>
+                    <td th:text="${sig.verifiedAt()}">2026-11-07T10:00:00Z</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-note">
+        Generated by TTPU "Raqamli Inventar" Document Engine | Form <span th:text="${formCode}">FT-12.9</span> |
+        Generated At (UTC): <span th:text="${generatedAt}">2026-11-07T10:00:00Z</span>
+    </div>
+</body>
+</html>

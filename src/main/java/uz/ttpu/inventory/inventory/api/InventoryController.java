@@ -6,7 +6,10 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,18 +20,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import uz.ttpu.inventory.inventory.service.InventoryDocumentPrintService;
 import uz.ttpu.inventory.inventory.service.InventoryService;
 
 @RestController
 @RequestMapping("/api/v1/inventory/sessions")
 @RequiredArgsConstructor
 @Tag(
-        name = "13. Inventory Sessions & Live STOMP Dashboard",
-        description = "University inventory audit sessions (rector's order, commission members, room snapshots), QR scanning, reconciliation, and real-time STOMP WebSocket progress broadcasts (/ws/inventory)."
+        name = "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs",
+        description = "University inventory audit sessions (rector's order, commission members, room snapshots), QR scanning, reconciliation, real-time STOMP WebSocket progress broadcasts (/ws/inventory), and official FT-9.13 PDF generation (Opis, Comparison Statement, and Final Act) with E-IMZO digital signatures."
 )
 public class InventoryController {
 
     private final InventoryService inventoryService;
+    private final InventoryDocumentPrintService documentPrintService;
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -118,10 +123,54 @@ public class InventoryController {
     @PreAuthorize("hasAnyRole('ADMIN', 'COMMISSION_MEMBER', 'INVENTORY_COMMISSION', 'WAREHOUSE_MANAGER')")
     @Operation(
             summary = "Reconcile inventory session and transition missing items to QIDIRUVDA",
-            description = "Compares scanned results against expected lists, categorizing items into JOYIDA (In place), BOSHQA_XONADA_TOPILDI (Found in another room), TOPILMADI (Not found -> automatically transitions item state to QIDIRUVDA), and ORTIQCHA (Surplus)."
+            description = "Compares scanned results against expected lists, categorizing items into JOYIDA (In place), BOSHQA_XONADA_TOPILDI (Misplaced), TOPILMADI (Missing -> automatically transitions item state to QIDIRUVDA), and ORTIQCHA (Surplus)."
     )
     public InventoryReconciliationReportDto reconcileSession(@PathVariable UUID sessionId) {
         return inventoryService.reconcileSession(sessionId);
+    }
+
+    @GetMapping(value = "/{sessionId}/pdf/opis", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "Generate official FT-9.13 'Opis' (Inventory List) PDF",
+            description = "Renders the editable FT-9.13 Inventory Opis template via Thymeleaf + OpenHTMLtoPDF for all expected/scanned items in the session, embedding E-IMZO digital signature metadata."
+    )
+    public ResponseEntity<byte[]> generateOpisPdf(@PathVariable UUID sessionId) {
+        return toPdfResponse(documentPrintService.generateOpisPdf(sessionId));
+    }
+
+    @GetMapping(value = "/{sessionId}/pdf/comparison-statement", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "Generate official FT-9.13 'Comparison Statement' (Solishtirma Vedomost) PDF",
+            description = "Renders the editable FT-9.13 Comparison Statement template categorizing items into JOYIDA, BOSHQA_XONADA_TOPILDI, TOPILMADI, and ORTIQCHA, with embedded E-IMZO signature metadata."
+    )
+    public ResponseEntity<byte[]> generateComparisonStatementPdf(@PathVariable UUID sessionId) {
+        return toPdfResponse(documentPrintService.generateComparisonStatementPdf(sessionId));
+    }
+
+    @GetMapping(value = "/{sessionId}/pdf/final-act", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "Generate official FT-9.13 'Final Act' (Yakuniy Dalolatnoma) PDF",
+            description = "Renders the editable FT-9.13 Final Inventory Act summarizing commission metadata, rector's order, reconciliation totals, and E-IMZO PKCS#7 digital signatures."
+    )
+    public ResponseEntity<byte[]> generateFinalActPdf(@PathVariable UUID sessionId) {
+        return toPdfResponse(documentPrintService.generateFinalActPdf(sessionId));
+    }
+
+    @PostMapping(value = "/{sessionId}/pdf/{documentType}/sign", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "Attach E-IMZO PKCS#7 digital signature metadata to an inventory session PDF (opis, comparison-statement, or final-act)",
+            description = "Verifies the signer's E-IMZO PKCS#7 signature via EImzoService, persists an EImzoSignatureRecord, and embeds the verified signature metadata into the generated FT-9.13 PDF."
+    )
+    public ResponseEntity<byte[]> signSessionPdf(
+            @PathVariable UUID sessionId,
+            @PathVariable String documentType,
+            @Valid @RequestBody InventorySignPdfRequest request
+    ) {
+        return toPdfResponse(documentPrintService.signSessionPdf(sessionId, documentType, request));
     }
 
     @GetMapping("/{sessionId}/dashboard")
@@ -147,5 +196,17 @@ public class InventoryController {
     @MessageMapping("/inventory/sessions/{sessionId}/dashboard")
     public void requestDashboardPushOverStomp(@DestinationVariable UUID sessionId) {
         inventoryService.pushProgressDashboard(sessionId);
+    }
+
+    private ResponseEntity<byte[]> toPdfResponse(InventoryPdfDocumentDto pdf) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + pdf.fileName() + "\"")
+                .header("X-Form-Code", pdf.formCode())
+                .header("X-Document-Type", pdf.documentType())
+                .header("X-Document-SHA256", pdf.sha256Checksum())
+                .header("X-EIMZO-Signature-Count", String.valueOf(pdf.eimzoSignatureCount()))
+                .header("X-EIMZO-PKCS7-Id", pdf.latestPkcs7SignatureId())
+                .body(pdf.pdfBytes());
     }
 }

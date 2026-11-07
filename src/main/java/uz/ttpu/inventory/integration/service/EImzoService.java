@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uz.ttpu.inventory.integration.api.EImzoSignatureLookupApi;
 import uz.ttpu.inventory.integration.api.EImzoSignatureRecordDto;
 import uz.ttpu.inventory.integration.api.VerifySignedPdfRequest;
 import uz.ttpu.inventory.integration.domain.EImzoSignatureRecord;
@@ -25,7 +26,7 @@ import uz.ttpu.inventory.integration.service.EImzoExternalVerificationStub.EImzo
 
 @Service
 @RequiredArgsConstructor
-public class EImzoService {
+public class EImzoService implements EImzoSignatureLookupApi {
 
     private final EImzoSignatureRecordRepository signatureRecordRepository;
     private final EImzoExternalVerificationStub verificationStub;

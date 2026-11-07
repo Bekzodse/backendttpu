@@ -21,20 +21,17 @@ servers:
 security:
 - bearerAuth: []
 tags:
-- name: 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
-  description: "High-throughput Apache POI SXSSF streaming XLSX report generation\
-    \ (10,000+ rows in under 30 seconds) with export performance metrics and audit\
-    \ logging."
 - name: "12. Multi-Channel Notifications (Email, Telegram, FCM Push)"
   description: "Event-driven and manual notifications dispatched across SMTP Email,\
     \ Telegram Bot API, and Firebase Cloud Messaging (FCM) Push."
-- name: 13. Inventory Sessions & Live STOMP Dashboard
-  description: "University inventory audit sessions (rector's order, commission members,\
-    \ room snapshots), QR scanning, reconciliation, and real-time STOMP WebSocket\
-    \ progress broadcasts (/ws/inventory)."
 - name: 06. Item Card Audit Trail
   description: "Immutable AOP-captured audit logs (READ, CHANGE, EXPORT) recorded\
     \ in audit_record for item cards and inventory exports."
+- name: 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
+  description: "High-throughput Apache POI SXSSF streaming XLSX report generation\
+    \ (10,000+ rows in under 30 seconds) and Thymeleaf + OpenHTMLtoPDF official PDF\
+    \ print forms (FT-12.9 Handover Act, FT-9.13 Opis, Comparison Statement, and Final\
+    \ Act) with embedded E-IMZO PKCS#7 signature metadata."
 - name: 11. File & Document Storage (MinIO)
   description: "Attachment storage metadata, SHA-256 integrity checksum calculation,\
     \ and MinIO object key tracking for signed PDF acts, invoices, and inspection\
@@ -58,10 +55,6 @@ tags:
   description: "CRUD operations, soft-deactivation (active=false), and Hibernate Envers\
     \ revision history for Buildings, Floors, Departments, Rooms, Employees, and Asset\
     \ Categories (with JSONB custom fields)."
-- name: "09. Internal Logistics: Issue & Transfer"
-  description: Warehouse issue (OMBORDA -> YOLDA -> FOYDALANISHDA) and room-to-room
-    / person-to-person transfer flows with recipient 2FA TOTP confirmation and an
-    insert-only PostgreSQL movement ledger.
 - name: 10. Repair & Vendor Maintenance Tickets
   description: Repair ticket lifecycle (NEW -> IN_PROGRESS -> IN_SERVICE -> DONE ->
     CLOSED) with event-driven item state transitions to/from TAMIRDA and multi-channel
@@ -70,6 +63,11 @@ tags:
   description: "Transactional Outbox queue with Resilience4j Retry + CircuitBreaker,\
     \ 1C Accounting item export & depreciation ingestion, HEMIS daily employee/department\
     \ sync, and E-IMZO signed PDF verification."
+- name: "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
+  description: "University inventory audit sessions (rector's order, commission members,\
+    \ room snapshots), QR scanning, reconciliation, real-time STOMP WebSocket progress\
+    \ broadcasts (/ws/inventory), and official FT-9.13 PDF generation (Opis, Comparison\
+    \ Statement, and Final Act) with E-IMZO digital signatures."
 - name: 08. Asset Requisition Requests
   description: Employee and department asset requisition requests (DRAFT -> SUBMITTED
     -> APPROVED/REJECTED -> FULFILLED) integrated with the Generic Workflow Engine.
@@ -85,7 +83,69 @@ tags:
   description: "Straight-line depreciation forecast calculations ((initialValue -\
     \ salvageValue) / usefulLifeYears) with multi-year schedules and NUMERIC(18,2)\
     \ rounding reconciliation."
+- name: "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
+  description: "Warehouse issue (OMBORDA -> YOLDA -> FOYDALANISHDA), room-to-room\
+    \ / person-to-person transfer flows with recipient 2FA TOTP confirmation, insert-only\
+    \ movement ledger, and official FT-12.9 Handover Act (Dalolatnoma) PDF generation\
+    \ with E-IMZO signatures."
 paths:
+  /api/v1/reports/pdf/templates/{templateKey}:
+    put:
+      tags:
+      - 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
+      summary: Update an editable XHTML print form template (FT-12.9 or FT-9.13)
+      description: Updates the XHTML template used by Thymeleaf + OpenHTMLtoPDF for
+        generating FT-12.9 or FT-9.13 official PDF documents.
+      operationId: updatePrintTemplate
+      parameters:
+      - name: templateKey
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePrintTemplateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PrintTemplateDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/references/rooms/{id}:
     get:
       tags:
@@ -3336,7 +3396,7 @@ paths:
   /api/v1/movements/transfers:
     post:
       tags:
-      - "09. Internal Logistics: Issue & Transfer"
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
       summary: Initiate room-to-room or person-to-person transfer
       description: Initiates a TRANSFER_ROOM_TO_ROOM or TRANSFER_PERSON_TO_PERSON
         operation. Transitions the item from FOYDALANISHDA to YOLDA and appends a
@@ -3388,7 +3448,7 @@ paths:
   /api/v1/movements/transfers/{operationId}/reject:
     post:
       tags:
-      - "09. Internal Logistics: Issue & Transfer"
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
       summary: Reject transfer and restore item to original custodian
       description: Receiving employee rejects the transfer with a reason. Restores
         the item from YOLDA back to FOYDALANISHDA under the original room/custodian
@@ -3447,7 +3507,7 @@ paths:
   /api/v1/movements/transfers/{operationId}/confirm:
     post:
       tags:
-      - "09. Internal Logistics: Issue & Transfer"
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
       summary: Confirm transfer receipt via 2FA TOTP
       description: "Receiving employee confirms the transfer with a 6-digit TOTP code.\
         \ Transitions the item from YOLDA to FOYDALANISHDA, assigns the new room/custodian,\
@@ -3503,10 +3563,71 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/movements/operations/{operationId}/handover-act/sign:
+    post:
+      tags:
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
+      summary: Attach E-IMZO PKCS#7 digital signature metadata to FT-12.9 Handover
+        Act PDF
+      description: "Verifies the signer's E-IMZO PKCS#7 signature, persists an EImzoSignatureRecord,\
+        \ and embeds the verified signature metadata directly into the FT-12.9 Handover\
+        \ Act PDF."
+      operationId: signHandoverActPdf
+      parameters:
+      - name: operationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovementSignPdfRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/movements/issues:
     post:
       tags:
-      - "09. Internal Logistics: Issue & Transfer"
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
       summary: Dispatch an item from warehouse (Issue initiation)
       description: Warehouse scans an item (by UUID or 10-character QR code) and assigns
         a target room and recipient employee. Moves the item state from OMBORDA to
@@ -3558,7 +3679,7 @@ paths:
   /api/v1/movements/issues/{operationId}/reject:
     post:
       tags:
-      - "09. Internal Logistics: Issue & Transfer"
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
       summary: Reject warehouse issue and return item to OMBORDA
       description: Recipient rejects the dispatched item with a reason. Returns the
         item state from YOLDA back to OMBORDA and appends an ISSUE_REJECTED movement
@@ -3617,7 +3738,7 @@ paths:
   /api/v1/movements/issues/{operationId}/confirm:
     post:
       tags:
-      - "09. Internal Logistics: Issue & Transfer"
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
       summary: Confirm warehouse issue receipt via 2FA TOTP
       description: "Recipient employee confirms receipt using a valid 6-digit TOTP\
         \ code. Transitions the item from YOLDA to FOYDALANISHDA, updates its location\
@@ -3676,7 +3797,7 @@ paths:
   /api/v1/inventory/sessions:
     get:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: List all inventory sessions
       description: "Returns all inventory sessions (DRAFT, IN_PROGRESS, COMPLETED,\
         \ CANCELLED)."
@@ -3722,7 +3843,7 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
     post:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Create a new inventory session
       description: "Creates an inventory session with rector's order details, commission\
         \ members, and rooms. If generateExpectedListImmediately=true, snapshots the\
@@ -3774,7 +3895,7 @@ paths:
   /api/v1/inventory/sessions/{sessionId}/scan:
     post:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Record a live item scan in an inventory session
       description: "Marks an expected item as FOUND (by itemId or 10-character QR\
         \ code) in the scanned room, auto-completes rooms when notFoundCount reaches\
@@ -3833,7 +3954,7 @@ paths:
   /api/v1/inventory/sessions/{sessionId}/rooms/{roomId}/complete:
     post:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Manually mark a room count as COMPLETED
       description: Marks a room's inventory count as COMPLETED (even if some items
         remain NOT_FOUND) and broadcasts the updated progress dashboard via STOMP
@@ -3892,12 +4013,12 @@ paths:
   /api/v1/inventory/sessions/{sessionId}/reconcile:
     post:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Reconcile inventory session and transition missing items to QIDIRUVDA
       description: "Compares scanned results against expected lists, categorizing\
-        \ items into JOYIDA (In place), BOSHQA_XONADA_TOPILDI (Found in another room),\
-        \ TOPILMADI (Not found -> automatically transitions item state to QIDIRUVDA),\
-        \ and ORTIQCHA (Surplus)."
+        \ items into JOYIDA (In place), BOSHQA_XONADA_TOPILDI (Misplaced), TOPILMADI\
+        \ (Missing -> automatically transitions item state to QIDIRUVDA), and ORTIQCHA\
+        \ (Surplus)."
       operationId: reconcileSession_1
       parameters:
       - name: sessionId
@@ -3943,10 +4064,76 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/inventory/sessions/{sessionId}/pdf/{documentType}/sign:
+    post:
+      tags:
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
+      summary: "Attach E-IMZO PKCS#7 digital signature metadata to an inventory session\
+        \ PDF (opis, comparison-statement, or final-act)"
+      description: "Verifies the signer's E-IMZO PKCS#7 signature via EImzoService,\
+        \ persists an EImzoSignatureRecord, and embeds the verified signature metadata\
+        \ into the generated FT-9.13 PDF."
+      operationId: signSessionPdf
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: documentType
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventorySignPdfRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/inventory/sessions/{sessionId}/expected-list:
     get:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Get expected item lists grouped by room
       description: "Returns the expected item list, found/not-found counts, and room\
         \ completion status for every room in the session."
@@ -3999,7 +4186,7 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
     post:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Generate or refresh expected item lists per room
       description: "Snapshots all active non-written-off items currently assigned\
         \ to the session's rooms, increments packageVersion, transitions session to\
@@ -4054,7 +4241,7 @@ paths:
   /api/v1/inventory/sessions/{sessionId}/dashboard/push:
     post:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Broadcast live progress dashboard to STOMP WebSocket subscribers
       description: "Computes the current InventoryProgressDashboardDto and pushes\
         \ it to /topic/inventory/sessions/{sessionId}/progress and /topic/inventory/dashboard."
@@ -5303,6 +5490,54 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/reports/pdf/templates:
+    get:
+      tags:
+      - 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
+      summary: List editable XHTML print form templates (FT-12.9 & FT-9.13)
+      description: "Returns all official PDF print form templates (ft-12-9-handover-act,\
+        \ ft-9-13-inventory-opis, ft-9-13-comparison-statement, ft-9-13-final-act)\
+        \ and their current editable XHTML source."
+      operationId: listPrintTemplates
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PrintTemplateDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/reports/logs:
     get:
       tags:
@@ -5829,7 +6064,7 @@ paths:
   /api/v1/movements/operations/{operationId}:
     get:
       tags:
-      - "09. Internal Logistics: Issue & Transfer"
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
       summary: Get movement ledger records by operation ID
       description: Returns the chronological sequence of insert-only movement records
         for a specific issue or transfer operationId.
@@ -5880,10 +6115,65 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/movements/operations/{operationId}/handover-act.pdf:
+    get:
+      tags:
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
+      summary: Generate official FT-12.9 Handover Act (Dalolatnoma) PDF for an issue
+        or transfer
+      description: Renders the editable FT-12.9 XHTML template via Thymeleaf + OpenHTMLtoPDF
+        for the specified movement operationId and embeds E-IMZO signature metadata
+        into the PDF.
+      operationId: generateHandoverActPdf
+      parameters:
+      - name: operationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/movements/items/{itemId}:
     get:
       tags:
-      - "09. Internal Logistics: Issue & Transfer"
+      - "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF"
       summary: Get full movement history for an item
       description: Returns all historical issue and transfer records for the specified
         item UUID ordered from newest to oldest.
@@ -5937,7 +6227,7 @@ paths:
   /api/v1/inventory/sessions/{sessionId}:
     get:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Get inventory session by ID
       description: "Retrieves session details including rector's order number, chairman,\
         \ commission members, and assigned rooms."
@@ -5989,7 +6279,7 @@ paths:
   /api/v1/inventory/sessions/{sessionId}/rooms/{roomId}/expected-list:
     get:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Get expected item list for a specific room
       description: Returns expected items and scan progress for a single room within
         the inventory session.
@@ -6044,10 +6334,173 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/inventory/sessions/{sessionId}/pdf/opis:
+    get:
+      tags:
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
+      summary: Generate official FT-9.13 'Opis' (Inventory List) PDF
+      description: "Renders the editable FT-9.13 Inventory Opis template via Thymeleaf\
+        \ + OpenHTMLtoPDF for all expected/scanned items in the session, embedding\
+        \ E-IMZO digital signature metadata."
+      operationId: generateOpisPdf
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/inventory/sessions/{sessionId}/pdf/final-act:
+    get:
+      tags:
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
+      summary: Generate official FT-9.13 'Final Act' (Yakuniy Dalolatnoma) PDF
+      description: "Renders the editable FT-9.13 Final Inventory Act summarizing commission\
+        \ metadata, rector's order, reconciliation totals, and E-IMZO PKCS#7 digital\
+        \ signatures."
+      operationId: generateFinalActPdf
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/inventory/sessions/{sessionId}/pdf/comparison-statement:
+    get:
+      tags:
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
+      summary: Generate official FT-9.13 'Comparison Statement' (Solishtirma Vedomost)
+        PDF
+      description: "Renders the editable FT-9.13 Comparison Statement template categorizing\
+        \ items into JOYIDA, BOSHQA_XONADA_TOPILDI, TOPILMADI, and ORTIQCHA, with\
+        \ embedded E-IMZO signature metadata."
+      operationId: generateComparisonStatementPdf
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/inventory/sessions/{sessionId}/dashboard:
     get:
       tags:
-      - 13. Inventory Sessions & Live STOMP Dashboard
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
       summary: Get live inventory session progress dashboard
       description: "Returns overall and per-room completion status, expected/found/not-found\
         \ counts, and completion percentages."
@@ -6651,6 +7104,29 @@ components:
           type: object
           additionalProperties:
             type: object
+    UpdatePrintTemplateRequest:
+      type: object
+      properties:
+        xhtmlContent:
+          type: string
+      required:
+      - xhtmlContent
+    PrintTemplateDto:
+      type: object
+      properties:
+        templateKey:
+          type: string
+        formCode:
+          type: string
+        description:
+          type: string
+        xhtmlContent:
+          type: string
+        customized:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
     RoomRequest:
       type: object
       properties:
@@ -8177,6 +8653,23 @@ components:
       required:
       - recipientEmployeeId
       - totpCode
+    MovementSignPdfRequest:
+      type: object
+      properties:
+        signerPinfl:
+          type: string
+        signerTin:
+          type: string
+        signerFullName:
+          type: string
+        signerOrganization:
+          type: string
+        certificateSerialNumber:
+          type: string
+      required:
+      - certificateSerialNumber
+      - signerFullName
+      - signerPinfl
     IssueDispatchRequest:
       type: object
       properties:
@@ -8386,6 +8879,23 @@ components:
         completedAt:
           type: string
           format: date-time
+    InventorySignPdfRequest:
+      type: object
+      properties:
+        signerPinfl:
+          type: string
+        signerTin:
+          type: string
+        signerFullName:
+          type: string
+        signerOrganization:
+          type: string
+        certificateSerialNumber:
+          type: string
+      required:
+      - certificateSerialNumber
+      - signerFullName
+      - signerPinfl
     RoomExpectedItemsDto:
       type: object
       properties:

@@ -182,6 +182,9 @@ class InventoryApplicationTests {
     private MovementService movementService;
 
     @Autowired
+    private uz.ttpu.inventory.movement.service.MovementHandoverActService movementHandoverActService;
+
+    @Autowired
     private RepairService repairService;
 
     @Autowired
@@ -192,6 +195,9 @@ class InventoryApplicationTests {
 
     @Autowired
     private InventoryService inventoryService;
+
+    @Autowired
+    private uz.ttpu.inventory.inventory.service.InventoryDocumentPrintService inventoryDocumentPrintService;
 
     @Autowired
     private OutboxWorkerService outboxWorkerService;
@@ -959,5 +965,47 @@ class InventoryApplicationTests {
                     .contains("\"ru\":\"Запрашиваемый ресурс не найден.\"")
                     .contains("\"en\":\"The requested resource was not found.\"");
         }
+
+        // 19. Prompt 8: Official PDF Print Forms (FT-12.9 Handover Act, FT-9.13 Opis, Comparison Statement, Final Act) + E-IMZO Metadata
+        var handoverPdf = movementHandoverActService.generateHandoverActPdf(transferConfirmed.operationId());
+        assertThat(handoverPdf.formCode()).isEqualTo("FT-12.9");
+        assertThat(new String(handoverPdf.pdfBytes(), 0, 5)).isEqualTo("%PDF-");
+
+        var signedHandoverPdf = movementHandoverActService.signHandoverActPdf(
+                transferConfirmed.operationId(),
+                new uz.ttpu.inventory.movement.api.MovementSignPdfRequest(
+                        "30101800010014",
+                        "201122919",
+                        "Prof. Jamshid Inoyatkhodjaev",
+                        "TTPU",
+                        "CERT-FT129-2026-01"
+                )
+        );
+        assertThat(signedHandoverPdf.eimzoSignatureCount()).isGreaterThanOrEqualTo(1);
+        assertThat(signedHandoverPdf.latestPkcs7SignatureId()).isNotBlank();
+
+        var opisPdf = inventoryDocumentPrintService.generateOpisPdf(invSession.id());
+        var comparisonPdf = inventoryDocumentPrintService.generateComparisonStatementPdf(invSession.id());
+        var finalActPdf = inventoryDocumentPrintService.generateFinalActPdf(invSession.id());
+        assertThat(opisPdf.formCode()).isEqualTo("FT-9.13");
+        assertThat(comparisonPdf.formCode()).isEqualTo("FT-9.13");
+        assertThat(finalActPdf.formCode()).isEqualTo("FT-9.13");
+        assertThat(new String(opisPdf.pdfBytes(), 0, 5)).isEqualTo("%PDF-");
+        assertThat(new String(comparisonPdf.pdfBytes(), 0, 5)).isEqualTo("%PDF-");
+        assertThat(new String(finalActPdf.pdfBytes(), 0, 5)).isEqualTo("%PDF-");
+
+        var signedFinalActPdf = inventoryDocumentPrintService.signSessionPdf(
+                invSession.id(),
+                "final-act",
+                new uz.ttpu.inventory.inventory.api.InventorySignPdfRequest(
+                        "30101800010014",
+                        "201122919",
+                        "Prof. Jamshid Inoyatkhodjaev",
+                        "TTPU",
+                        "CERT-FT913-2026-01"
+                )
+        );
+        assertThat(signedFinalActPdf.eimzoSignatureCount()).isGreaterThanOrEqualTo(1);
+        assertThat(signedFinalActPdf.latestPkcs7SignatureId()).isNotBlank();
     }
 }

@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title th:text="${formCode + ' - Inventory Opis (Ro''yxat)'}">FT-9.13 - Inventory Opis</title>
+    <style type="text/css">
+        @page { size: A4 landscape; margin: 15mm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #1a202c; }
+        .header-right { text-align: right; font-size: 8.5pt; color: #4a5568; margin-bottom: 6px; }
+        .org-title { text-align: center; font-weight: bold; font-size: 11.5pt; }
+        .doc-title { text-align: center; font-weight: bold; font-size: 13pt; margin: 6px 0; text-transform: uppercase; }
+        .doc-subtitle { text-align: center; font-size: 9.5pt; margin-bottom: 12px; color: #2d3748; }
+        table.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        table.meta-table td { padding: 4px 8px; border: 1px solid #cbd5e0; font-size: 9pt; }
+        table.meta-table td.label { font-weight: bold; background-color: #f7fafc; width: 22%; }
+        table.items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+        table.items-table th { background-color: #edf2f7; border: 1px solid #a0aec0; padding: 5px; font-size: 8.5pt; text-align: left; }
+        table.items-table td { border: 1px solid #cbd5e0; padding: 5px; font-size: 8.5pt; }
+        .eimzo-box { border: 1.5px solid #2b6cb0; background-color: #ebf8ff; padding: 8px; margin-top: 12px; }
+        .eimzo-title { font-weight: bold; color: #2b6cb0; font-size: 9.5pt; margin-bottom: 4px; }
+        .footer-note { margin-top: 12px; font-size: 8pt; color: #718096; border-top: 1px solid #e2e8f0; padding-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header-right">
+        Official Print Form: <strong th:text="${formCode}">FT-9.13</strong> (OPIS)<br />
+        Turin Polytechnic University in Tashkent (TTPU) — "Raqamli Inventar" ERP
+    </div>
+
+    <div class="org-title">TOSHKENT SHAHRIDAGI TURIN POLITEXNIKA UNIVERSITETI (TTPU)</div>
+    <div class="doc-title">INVENTARIZATSIYA RO'YXATI / ИНВЕНТАРИЗАЦИОННАЯ ОПИСЬ (OPIS)</div>
+    <div class="doc-subtitle">
+        Session Code: <strong th:text="${req.sessionCode()}">INV-2026-01</strong> |
+        Rector's Order: <strong th:text="${req.rectorOrderNumber()}">ORD-101</strong>
+        (<span th:text="${req.rectorOrderDate()}">2026-11-01</span>) |
+        Status: <strong th:text="${req.sessionStatus()}">IN_PROGRESS</strong>
+    </div>
+
+    <table class="meta-table">
+        <tr>
+            <td class="label">Session ID</td>
+            <td th:text="${req.sessionId()}">00000000-0000-0000-0000-000000000000</td>
+            <td class="label">Commission Chairman</td>
+            <td th:text="${req.chairmanEmployeeId()}">Chairman UUID</td>
+        </tr>
+        <tr>
+            <td class="label">Total Expected Items</td>
+            <td th:text="${req.expectedItems() != null ? req.expectedItems().size() : 0}">0</td>
+            <td class="label">Commission Members Count</td>
+            <td th:text="${req.commissionMemberIds() != null ? req.commissionMemberIds().size() : 0}">0</td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Inventory Number</th>
+                <th>QR Code</th>
+                <th>Asset Name</th>
+                <th>Expected Room ID</th>
+                <th>Scanned Room ID</th>
+                <th>Line Status</th>
+                <th>Book Value (UZS)</th>
+                <th>Scanned At (UTC)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="item, stat : ${req.expectedItems()}">
+                <td th:text="${stat.count}">1</td>
+                <td th:text="${item.inventoryNumber()}">TTPU-INV-001</td>
+                <td th:text="${item.qrCode()}">JBSWY3DPEB</td>
+                <td th:text="${item.itemName()}">Workstation</td>
+                <td th:text="${item.roomId()}">Room</td>
+                <td th:text="${item.scannedRoomId() != null ? item.scannedRoomId() : '-'}">-</td>
+                <td th:text="${item.lineStatus()}">FOUND</td>
+                <td th:text="${item.bookValue() != null ? item.bookValue() : '0.00'}">0.00</td>
+                <td th:text="${item.scannedAt() != null ? item.scannedAt() : '-'}">-</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="eimzo-box">
+        <div class="eimzo-title">E-IMZO PKCS#7 Digital Signature Verification Seal</div>
+        <div th:if="${signatures == null or signatures.isEmpty()}">
+            Status: <strong>UNSIGNED DRAFT OPIS</strong>
+        </div>
+        <table class="items-table" th:if="${signatures != null and !signatures.isEmpty()}">
+            <thead>
+                <tr>
+                    <th>PKCS#7 Signature ID</th>
+                    <th>Signer Full Name</th>
+                    <th>PINFL / TIN</th>
+                    <th>Certificate Serial</th>
+                    <th>Verified At (UTC)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="sig : ${signatures}">
+                    <td th:text="${sig.pkcs7SignatureId()}">EIMZO-PKCS7-001</td>
+                    <td th:text="${sig.signerFullName()}">Signer Name</td>
+                    <td th:text="${sig.signerPinfl() + ' / ' + (sig.signerTin() != null ? sig.signerTin() : '-')}">PINFL</td>
+                    <td th:text="${sig.certificateSerialNumber()}">CERT-001</td>
+                    <td th:text="${sig.verifiedAt()}">2026-11-07T10:00:00Z</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-note">
+        Generated by TTPU "Raqamli Inventar" Document Engine | Form <span th:text="${formCode}">FT-9.13</span> (OPIS) |
+        Generated At (UTC): <span th:text="${generatedAt}">2026-11-07T10:00:00Z</span>
+    </div>
+</body>
+</html>

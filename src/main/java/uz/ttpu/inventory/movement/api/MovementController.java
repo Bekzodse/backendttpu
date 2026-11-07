@@ -6,7 +6,9 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,18 +16,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import uz.ttpu.inventory.movement.service.MovementHandoverActService;
 import uz.ttpu.inventory.movement.service.MovementService;
 
 @RestController
 @RequestMapping("/api/v1/movements")
 @RequiredArgsConstructor
 @Tag(
-        name = "09. Internal Logistics: Issue & Transfer",
-        description = "Warehouse issue (OMBORDA -> YOLDA -> FOYDALANISHDA) and room-to-room / person-to-person transfer flows with recipient 2FA TOTP confirmation and an insert-only PostgreSQL movement ledger."
+        name = "09. Internal Logistics: Issue, Transfer & FT-12.9 Handover Act PDF",
+        description = "Warehouse issue (OMBORDA -> YOLDA -> FOYDALANISHDA), room-to-room / person-to-person transfer flows with recipient 2FA TOTP confirmation, insert-only movement ledger, and official FT-12.9 Handover Act (Dalolatnoma) PDF generation with E-IMZO signatures."
 )
 public class MovementController {
 
     private final MovementService movementService;
+    private final MovementHandoverActService handoverActService;
 
     @PostMapping("/issues")
     @Operation(
@@ -102,6 +106,29 @@ public class MovementController {
         return ResponseEntity.ok(movementService.getOperationRecords(operationId));
     }
 
+    @GetMapping(value = "/operations/{operationId}/handover-act.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(
+            summary = "Generate official FT-12.9 Handover Act (Dalolatnoma) PDF for an issue or transfer",
+            description = "Renders the editable FT-12.9 XHTML template via Thymeleaf + OpenHTMLtoPDF for the specified movement operationId and embeds E-IMZO signature metadata into the PDF."
+    )
+    public ResponseEntity<byte[]> generateHandoverActPdf(@PathVariable UUID operationId) {
+        MovementHandoverActPdfDto pdf = handoverActService.generateHandoverActPdf(operationId);
+        return toPdfResponse(pdf);
+    }
+
+    @PostMapping(value = "/operations/{operationId}/handover-act/sign", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(
+            summary = "Attach E-IMZO PKCS#7 digital signature metadata to FT-12.9 Handover Act PDF",
+            description = "Verifies the signer's E-IMZO PKCS#7 signature, persists an EImzoSignatureRecord, and embeds the verified signature metadata directly into the FT-12.9 Handover Act PDF."
+    )
+    public ResponseEntity<byte[]> signHandoverActPdf(
+            @PathVariable UUID operationId,
+            @Valid @RequestBody MovementSignPdfRequest request
+    ) {
+        MovementHandoverActPdfDto signedPdf = handoverActService.signHandoverActPdf(operationId, request);
+        return toPdfResponse(signedPdf);
+    }
+
     @GetMapping("/items/{itemId}")
     @Operation(
             summary = "Get full movement history for an item",
@@ -109,5 +136,17 @@ public class MovementController {
     )
     public ResponseEntity<List<MovementRecordDto>> getItemMovementHistory(@PathVariable UUID itemId) {
         return ResponseEntity.ok(movementService.getItemMovementHistory(itemId));
+    }
+
+    private ResponseEntity<byte[]> toPdfResponse(MovementHandoverActPdfDto pdf) {
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + pdf.fileName() + "\"")
+                .header("X-Form-Code", pdf.formCode())
+                .header("X-Document-Type", pdf.documentType())
+                .header("X-Document-SHA256", pdf.sha256Checksum())
+                .header("X-EIMZO-Signature-Count", String.valueOf(pdf.eimzoSignatureCount()))
+                .header("X-EIMZO-PKCS7-Id", pdf.latestPkcs7SignatureId())
+                .body(pdf.pdfBytes());
     }
 }
