@@ -106,6 +106,18 @@ services:
       retries: 5
       start_period: 30s
 
+  prism-mock:
+    image: stoplight/prism:5
+    container_name: ttpu-inventory-prism-mock
+    restart: unless-stopped
+    command: mock -h 0.0.0.0 /tmp/openapi.yaml
+    volumes:
+      - ./openapi.yaml:/tmp/openapi.yaml:ro
+    ports:
+      - "${PRISM_PORT:-4010}:4010"
+    networks:
+      - ttpu-inventory-net
+
 networks:
   ttpu-inventory-net:
     driver: bridge

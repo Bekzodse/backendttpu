@@ -17,6 +17,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import uz.ttpu.inventory.common.domain.ErrorCode;
+import uz.ttpu.inventory.common.domain.ProblemDetailFactory;
 
 @Component
 @RequiredArgsConstructor
@@ -64,12 +66,15 @@ public class LoginRateLimitingFilter extends OncePerRequestFilter {
         response.setHeader(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfterSeconds));
         response.setHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(retryAfterSeconds));
 
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.TOO_MANY_REQUESTS,
-                "Too many authentication attempts from " + clientIp + ". Retry after " + retryAfterSeconds + " seconds."
+        String requestUri = (request.getRequestURI() != null && !request.getRequestURI().isBlank())
+                ? request.getRequestURI()
+                : "/api/v1/auth/login";
+        ProblemDetail problem = ProblemDetailFactory.create(
+                ErrorCode.ERR_RATE_LIMIT_EXCEEDED,
+                "Too many authentication attempts from " + clientIp + ". Retry after " + retryAfterSeconds + " seconds.",
+                request.getLocale(),
+                URI.create(requestUri)
         );
-        problem.setTitle("Too Many Requests");
-        problem.setInstance(URI.create(request.getRequestURI()));
         problem.setProperty("retryAfterSeconds", retryAfterSeconds);
 
         objectMapper.writeValue(response.getOutputStream(), problem);

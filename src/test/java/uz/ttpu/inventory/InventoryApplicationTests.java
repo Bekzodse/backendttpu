@@ -901,5 +901,63 @@ class InventoryApplicationTests {
                         .isLessThan(2000L);
             }
         }
+
+        // 18. Prompt 7: OpenAPI Contract-First (openapi.yaml) & RFC 7807 (problem+json) with uz/ru/en Localization
+        java.net.http.HttpRequest openApiYamlReq = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create("http://localhost:" + port + "/openapi.yaml"))
+                .GET()
+                .build();
+        java.net.http.HttpResponse<String> openApiYamlResp = httpClient.send(
+                openApiYamlReq,
+                java.net.http.HttpResponse.BodyHandlers.ofString()
+        );
+        assertThat(openApiYamlResp.statusCode()).isEqualTo(200);
+        String openApiYaml = openApiYamlResp.body();
+        assertThat(openApiYaml)
+                .contains("openapi: 3.")
+                .contains("/api/v1/references/buildings:")
+                .contains("/api/v1/references/floors:")
+                .contains("/api/v1/references/departments:")
+                .contains("/api/v1/references/rooms:")
+                .contains("/api/v1/references/employees:")
+                .contains("/api/v1/references/categories:")
+                .contains("/api/v1/assets:")
+                .contains("/api/v1/assets/{id}/transitions:")
+                .contains("/a/{id}:")
+                .contains("/api/v1/receipts:")
+                .contains("/api/v1/receipts/{id}/approve:")
+                .contains("application/problem+json")
+                .contains("ERR_RESOURCE_NOT_FOUND")
+                .contains("http://localhost:4010");
+
+        // Persist the generated openapi.yaml at the repository root for Prism Mock Server & Next.js / KMP client codegen
+        java.nio.file.Files.writeString(java.nio.file.Path.of("openapi.yaml"), openApiYaml);
+        assertThat(java.nio.file.Path.of("openapi.yaml")).exists();
+        assertThat(java.nio.file.Path.of("scripts/prism-mock.sh")).exists();
+
+        // Verify RFC 7807 (application/problem+json) with stable errorCode and uz, ru, en localized messages
+        for (String lang : List.of("uz", "ru", "en")) {
+            java.net.http.HttpRequest notFoundReq = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("http://localhost:" + port + "/a/NONEXISTENT"))
+                    .header("Accept", "application/problem+json")
+                    .header("Accept-Language", lang)
+                    .GET()
+                    .build();
+            java.net.http.HttpResponse<String> notFoundResp = httpClient.send(
+                    notFoundReq,
+                    java.net.http.HttpResponse.BodyHandlers.ofString()
+            );
+            assertThat(notFoundResp.statusCode()).isEqualTo(404);
+            assertThat(notFoundResp.headers().firstValue("Content-Type"))
+                    .isPresent()
+                    .get()
+                    .asString()
+                    .contains("application/problem+json");
+            assertThat(notFoundResp.body())
+                    .contains("\"errorCode\":\"ERR_RESOURCE_NOT_FOUND\"")
+                    .contains("\"uz\":\"So'ralgan ma'lumot topilmadi.\"")
+                    .contains("\"ru\":\"Запрашиваемый ресурс не найден.\"")
+                    .contains("\"en\":\"The requested resource was not found.\"");
+        }
     }
 }
