@@ -1030,7 +1030,7 @@ class InventoryApplicationTests {
     assertThat(java.nio.file.Files.readString(dockerComposePath))
         .contains("postgres:16-alpine")
         .contains("redis:7-alpine")
-        .contains("minio/minio:latest")
+        .contains("minio")
         .contains("ttpu-inventory-backend")
         .contains("condition: service_healthy")
         .contains("jdbc:postgresql://postgres:5432/")

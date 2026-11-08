@@ -41,7 +41,7 @@ services:
       start_period: 5s
 
   minio:
-    image: cgr.dev/chainguard/minio:latest
+    image: cgr.dev/chainguard/minio:latest # S3-compatible storage (replaces deprecated minio/minio:latest)
     container_name: ttpu-inventory-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
