@@ -2040,6 +2040,270 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/reports/pdf/inventory-opis:
+    post:
+      tags:
+      - 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
+      summary: Generate FT-9.13 Inventory List / Opis PDF (Inventarizatsiya Ro'yxati
+        / Opis)
+      description: Renders the official FT-9.13 Inventory Opis PDF containing expected
+        and scanned room assets.
+      operationId: generateInventoryOpisPdf
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventorySessionPrintRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/reports/pdf/inventory-final-act:
+    post:
+      tags:
+      - 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
+      summary: Generate FT-9.13 Final Inventory Act PDF (Yakuniy Inventarizatsiya
+        Dalolatnomasi)
+      description: Renders the official FT-9.13 Final Inventory Act PDF with commission
+        approvals and summary reconciliation stats.
+      operationId: generateInventoryFinalActPdf
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventorySessionPrintRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/reports/pdf/inventory-comparison:
+    post:
+      tags:
+      - 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
+      summary: Generate FT-9.13 Comparison Statement PDF (Solishtirma Vedomost)
+      description: "Renders the official FT-9.13 Comparison Statement PDF highlighting\
+        \ discrepancies, shortages, and surplus items."
+      operationId: generateInventoryComparisonStatementPdf
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventorySessionPrintRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/reports/pdf/handover-act:
+    post:
+      tags:
+      - 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
+      summary: Generate FT-12.9 Handover Act PDF (Topshirish-Qabul Qilish Dalolatnomasi)
+      description: "Renders the official FT-12.9 Handover Act PDF using Thymeleaf\
+        \ + OpenHTMLtoPDF, embeds PDFBox metadata (including E-IMZO signatures if\
+        \ present), and returns the PDF bytes."
+      operationId: generateHandoverActPdf
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoverActPrintRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/reports/pdf/attach-signature:
+    post:
+      tags:
+      - 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
+      summary: Attach E-IMZO signature metadata to an official PDF document
+      description: "Validates the signature record via E-IMZO external verification\
+        \ stub, embeds PKCS#7 signature details into PDFBox document metadata, and\
+        \ returns the signed PDF."
+      operationId: attachSignatureToPdf
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttachPdfSignatureRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/reports/inventory.xlsx:
     get:
       tags:
@@ -7567,7 +7831,7 @@ paths:
       description: Renders the editable FT-12.9 XHTML template via Thymeleaf + OpenHTMLtoPDF
         for the specified movement operationId and embeds E-IMZO signature metadata
         into the PDF.
-      operationId: generateHandoverActPdf
+      operationId: generateHandoverActPdf_1
       parameters:
       - name: operationId
         in: path
@@ -10615,6 +10879,207 @@ components:
         updatedAt:
           type: string
           format: date-time
+    ExpectedItemPrintRow:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        inventoryNumber:
+          type: string
+        qrCode:
+          type: string
+        itemName:
+          type: string
+        roomId:
+          type: string
+          format: uuid
+        scannedRoomId:
+          type: string
+          format: uuid
+        custodianEmployeeId:
+          type: string
+          format: uuid
+        bookValue:
+          type: number
+        lineStatus:
+          type: string
+        scannedAt:
+          type: string
+          format: date-time
+    InventorySessionPrintRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        sessionCode:
+          type: string
+        rectorOrderNumber:
+          type: string
+        rectorOrderDate:
+          type: string
+          format: date-time
+        sessionDate:
+          type: string
+          format: date-time
+        sessionStatus:
+          type: string
+        chairmanEmployeeId:
+          type: string
+          format: uuid
+        commissionMemberIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        roomIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        joyidaCount:
+          type: integer
+          format: int32
+        boshqaXonadaCount:
+          type: integer
+          format: int32
+        topilmadiCount:
+          type: integer
+          format: int32
+        ortiqchaCount:
+          type: integer
+          format: int32
+        expectedItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpectedItemPrintRow"
+        reconciledItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReconciledItemPrintRow"
+    ReconciledItemPrintRow:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        inventoryNumber:
+          type: string
+        qrCode:
+          type: string
+        itemName:
+          type: string
+        expectedRoomId:
+          type: string
+          format: uuid
+        scannedRoomId:
+          type: string
+          format: uuid
+        categoryCode:
+          type: string
+        categoryLabel:
+          type: string
+        transitionedToQidiruvda:
+          type: boolean
+        scannedAt:
+          type: string
+          format: date-time
+    HandoverActPrintRequest:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        documentNumber:
+          type: string
+        movementType:
+          type: string
+        eventType:
+          type: string
+        itemId:
+          type: string
+          format: uuid
+        inventoryNumber:
+          type: string
+        qrCode:
+          type: string
+        itemName:
+          type: string
+        serialNumber:
+          type: string
+        itemState:
+          type: string
+        bookValue:
+          type: number
+        fromBuildingId:
+          type: string
+          format: uuid
+        toBuildingId:
+          type: string
+          format: uuid
+        fromRoomId:
+          type: string
+          format: uuid
+        toRoomId:
+          type: string
+          format: uuid
+        fromDepartmentId:
+          type: string
+          format: uuid
+        toDepartmentId:
+          type: string
+          format: uuid
+        fromEmployeeId:
+          type: string
+          format: uuid
+        toEmployeeId:
+          type: string
+          format: uuid
+        actorEmployeeId:
+          type: string
+          format: uuid
+        totpVerified:
+          type: boolean
+        reason:
+          type: string
+        recordedAt:
+          type: string
+          format: date-time
+    AttachPdfSignatureRequest:
+      type: object
+      properties:
+        documentType:
+          type: string
+        documentId:
+          type: string
+          format: uuid
+        documentNumber:
+          type: string
+        formCode:
+          type: string
+        fileName:
+          type: string
+        pdfBase64:
+          type: string
+        signerPinfl:
+          type: string
+        signerTin:
+          type: string
+        signerFullName:
+          type: string
+        signerOrganization:
+          type: string
+        certificateSerialNumber:
+          type: string
+      required:
+      - documentNumber
+      - documentType
+      - fileName
+      - formCode
+      - pdfBase64
+      - signerFullName
+      - signerPinfl
     InventoryReportRowDto:
       type: object
       properties:

@@ -34,35 +34,52 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const TEST_DURATION = __ENV.DURATION || '2m';
 const RAMP_UP = __ENV.RAMP_UP || '15s';
 const RAMP_DOWN = __ENV.RAMP_DOWN || '10s';
+const WORKLOAD = __ENV.WORKLOAD || 'mixed'; // 'mixed' (30 QR + 170 ERP) or 'qr_200' (200 QR VUs)
 
 // ---------------------------------------------------------------------------
-// k6 Options: 200 Concurrent Users (30 QR Public Scan + 170 ERP Users)
+// k6 Options: 200 Concurrent Users Workload Matrix
 // ---------------------------------------------------------------------------
 export const options = {
-  scenarios: {
-    // 30 concurrent users constantly hitting the public QR scan endpoint (/a/{id})
-    qr_public_scan: {
-      executor: 'constant-vus',
-      vus: 30,
-      duration: TEST_DURATION,
-      exec: 'qrPublicScanScenario',
-      tags: { workload: 'public_qr_scan' },
-    },
+  scenarios:
+    WORKLOAD === 'qr_200'
+      ? {
+          // 200 concurrent users all hitting the public QR scan endpoint (/a/{id})
+          qr_public_scan_200_vus: {
+            executor: 'ramping-vus',
+            startVUs: 0,
+            stages: [
+              { duration: RAMP_UP, target: 200 },
+              { duration: TEST_DURATION, target: 200 },
+              { duration: RAMP_DOWN, target: 0 },
+            ],
+            exec: 'qrPublicScanScenario',
+            tags: { workload: 'public_qr_scan_200_vus' },
+          },
+        }
+      : {
+          // 30 concurrent users constantly hitting the public QR scan endpoint (/a/{id})
+          qr_public_scan: {
+            executor: 'constant-vus',
+            vus: 30,
+            duration: TEST_DURATION,
+            exec: 'qrPublicScanScenario',
+            tags: { workload: 'public_qr_scan' },
+          },
 
-    // Remaining 170 concurrent users simulating authenticated university staff
-    // (Total concurrent users = 30 + 170 = 200 VUs)
-    authenticated_erp_users: {
-      executor: 'ramping-vus',
-      startVUs: 0,
-      stages: [
-        { duration: RAMP_UP, target: 170 },
-        { duration: TEST_DURATION, target: 170 },
-        { duration: RAMP_DOWN, target: 0 },
-      ],
-      exec: 'authenticatedErpScenario',
-      tags: { workload: 'authenticated_erp' },
-    },
-  },
+          // Remaining 170 concurrent users simulating authenticated university staff
+          // (Total concurrent users = 30 + 170 = 200 VUs)
+          authenticated_erp_users: {
+            executor: 'ramping-vus',
+            startVUs: 0,
+            stages: [
+              { duration: RAMP_UP, target: 170 },
+              { duration: TEST_DURATION, target: 170 },
+              { duration: RAMP_DOWN, target: 0 },
+            ],
+            exec: 'authenticatedErpScenario',
+            tags: { workload: 'authenticated_erp' },
+          },
+        },
 
   thresholds: {
     // Global HTTP response time must stay under 2 seconds (2000 ms)

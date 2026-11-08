@@ -3,7 +3,11 @@ package uz.ttpu.inventory.report.api;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
+import java.util.Base64;
+import java.util.HexFormat;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -112,5 +116,139 @@ public class ReportController {
   public PrintTemplateDto updatePrintTemplate(
       @PathVariable String templateKey, @Valid @RequestBody UpdatePrintTemplateRequest request) {
     return printFormApi.updateTemplate(templateKey, request.xhtmlContent());
+  }
+
+  @PostMapping(value = "/pdf/handover-act", produces = MediaType.APPLICATION_PDF_VALUE)
+  @PreAuthorize("isAuthenticated()")
+  @Operation(
+      summary = "Generate FT-12.9 Handover Act PDF (Topshirish-Qabul Qilish Dalolatnomasi)",
+      description =
+          "Renders the official FT-12.9 Handover Act PDF using Thymeleaf + OpenHTMLtoPDF, embeds"
+              + " PDFBox metadata (including E-IMZO signatures if present), and returns the PDF"
+              + " bytes.")
+  public ResponseEntity<byte[]> generateHandoverActPdf(
+      @RequestBody HandoverActPrintRequest request) {
+    GeneratedPdfDocumentDto doc = printFormApi.generateHandoverActPdf(request);
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_PDF)
+        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + doc.fileName() + "\"")
+        .header("X-Document-Type", doc.documentType())
+        .header("X-Form-Code", doc.formCode())
+        .header("X-Document-Checksum", doc.sha256Checksum())
+        .body(doc.pdfBytes());
+  }
+
+  @PostMapping(value = "/pdf/inventory-opis", produces = MediaType.APPLICATION_PDF_VALUE)
+  @PreAuthorize("isAuthenticated()")
+  @Operation(
+      summary = "Generate FT-9.13 Inventory List / Opis PDF (Inventarizatsiya Ro'yxati / Opis)",
+      description =
+          "Renders the official FT-9.13 Inventory Opis PDF containing expected and scanned room"
+              + " assets.")
+  public ResponseEntity<byte[]> generateInventoryOpisPdf(
+      @RequestBody InventorySessionPrintRequest request) {
+    GeneratedPdfDocumentDto doc = printFormApi.generateInventoryOpisPdf(request);
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_PDF)
+        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + doc.fileName() + "\"")
+        .header("X-Document-Type", doc.documentType())
+        .header("X-Form-Code", doc.formCode())
+        .header("X-Document-Checksum", doc.sha256Checksum())
+        .body(doc.pdfBytes());
+  }
+
+  @PostMapping(value = "/pdf/inventory-comparison", produces = MediaType.APPLICATION_PDF_VALUE)
+  @PreAuthorize("isAuthenticated()")
+  @Operation(
+      summary = "Generate FT-9.13 Comparison Statement PDF (Solishtirma Vedomost)",
+      description =
+          "Renders the official FT-9.13 Comparison Statement PDF highlighting discrepancies,"
+              + " shortages, and surplus items.")
+  public ResponseEntity<byte[]> generateInventoryComparisonStatementPdf(
+      @RequestBody InventorySessionPrintRequest request) {
+    GeneratedPdfDocumentDto doc = printFormApi.generateInventoryComparisonStatementPdf(request);
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_PDF)
+        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + doc.fileName() + "\"")
+        .header("X-Document-Type", doc.documentType())
+        .header("X-Form-Code", doc.formCode())
+        .header("X-Document-Checksum", doc.sha256Checksum())
+        .body(doc.pdfBytes());
+  }
+
+  @PostMapping(value = "/pdf/inventory-final-act", produces = MediaType.APPLICATION_PDF_VALUE)
+  @PreAuthorize("isAuthenticated()")
+  @Operation(
+      summary = "Generate FT-9.13 Final Inventory Act PDF (Yakuniy Inventarizatsiya Dalolatnomasi)",
+      description =
+          "Renders the official FT-9.13 Final Inventory Act PDF with commission approvals and"
+              + " summary reconciliation stats.")
+  public ResponseEntity<byte[]> generateInventoryFinalActPdf(
+      @RequestBody InventorySessionPrintRequest request) {
+    GeneratedPdfDocumentDto doc = printFormApi.generateInventoryFinalActPdf(request);
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_PDF)
+        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + doc.fileName() + "\"")
+        .header("X-Document-Type", doc.documentType())
+        .header("X-Form-Code", doc.formCode())
+        .header("X-Document-Checksum", doc.sha256Checksum())
+        .body(doc.pdfBytes());
+  }
+
+  @PostMapping(value = "/pdf/attach-signature", produces = MediaType.APPLICATION_PDF_VALUE)
+  @PreAuthorize("isAuthenticated()")
+  @Operation(
+      summary = "Attach E-IMZO signature metadata to an official PDF document",
+      description =
+          "Validates the signature record via E-IMZO external verification stub, embeds PKCS#7"
+              + " signature details into PDFBox document metadata, and returns the signed PDF.")
+  public ResponseEntity<byte[]> attachSignatureToPdf(
+      @Valid @RequestBody AttachPdfSignatureRequest request) {
+    byte[] rawPdfBytes = Base64.getDecoder().decode(request.pdfBase64());
+    String checksum = computeSha256Hex(rawPdfBytes);
+
+    GeneratedPdfDocumentDto inputDoc =
+        new GeneratedPdfDocumentDto(
+            rawPdfBytes,
+            request.fileName(),
+            request.formCode(),
+            request.documentType(),
+            request.documentId(),
+            request.documentNumber(),
+            checksum,
+            List.of(),
+            java.time.Instant.now());
+
+    GeneratedPdfDocumentDto signedDoc =
+        printFormApi.attachEImzoSignatureToPdf(
+            inputDoc,
+            request.signerPinfl(),
+            request.signerTin(),
+            request.signerFullName(),
+            request.signerOrganization(),
+            request.certificateSerialNumber());
+
+    return ResponseEntity.ok()
+        .contentType(MediaType.APPLICATION_PDF)
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + signedDoc.fileName() + "\"")
+        .header("X-Document-Type", signedDoc.documentType())
+        .header("X-Form-Code", signedDoc.formCode())
+        .header("X-Document-Checksum", signedDoc.sha256Checksum())
+        .header(
+            "X-EImzo-Signature-Count",
+            String.valueOf(
+                signedDoc.eimzoSignatures() != null ? signedDoc.eimzoSignatures().size() : 0))
+        .body(signedDoc.pdfBytes());
+  }
+
+  private String computeSha256Hex(byte[] bytes) {
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      byte[] digest = md.digest(bytes);
+      return HexFormat.of().formatHex(digest);
+    } catch (NoSuchAlgorithmException e) {
+      return "";
+    }
   }
 }

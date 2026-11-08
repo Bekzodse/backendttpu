@@ -166,4 +166,129 @@ class PrintFormAndDocumentServicesTest {
     assertThatThrownBy(() -> invPrintService.signSessionPdf(sessionId, "invalid-doc-type", null))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  void reportControllerPdfEndpointsGenerateValidPdfsAndAttachSignatures() {
+    EImzoSignatureLookupApi eimzoLookup = mock(EImzoSignatureLookupApi.class);
+    when(eimzoLookup.listSignaturesForDocument(any())).thenReturn(List.of());
+    when(eimzoLookup.verifyAndRecordSignedPdfBlob(
+            any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenAnswer(
+            inv ->
+                new uz.ttpu.inventory.integration.api.EImzoSignatureRecordDto(
+                    UUID.randomUUID(),
+                    inv.getArgument(0),
+                    inv.getArgument(1),
+                    inv.getArgument(2),
+                    "12345678901234",
+                    ((byte[]) inv.getArgument(3)).length,
+                    "PKCS7-TEST-123",
+                    inv.getArgument(4),
+                    inv.getArgument(5),
+                    inv.getArgument(6),
+                    inv.getArgument(7),
+                    inv.getArgument(8),
+                    true,
+                    "OK",
+                    Instant.now(),
+                    Instant.now(),
+                    Instant.now()));
+
+    PdfPrintFormService pdfService = new PdfPrintFormService(eimzoLookup);
+    uz.ttpu.inventory.report.service.SxssfInventoryReportService sxssfService =
+        mock(uz.ttpu.inventory.report.service.SxssfInventoryReportService.class);
+    uz.ttpu.inventory.report.api.ReportController controller =
+        new uz.ttpu.inventory.report.api.ReportController(sxssfService, pdfService);
+
+    // 1. Handover Act PDF
+    UUID opId = UUID.randomUUID();
+    var handoverReq =
+        new uz.ttpu.inventory.report.api.HandoverActPrintRequest(
+            opId,
+            "ACT-2026-999",
+            "ISSUE",
+            "ISSUE_ACCEPTED",
+            UUID.randomUUID(),
+            "INV-999",
+            "QR999",
+            "Laser Printer",
+            "SN-999",
+            "FOYDALANISHDA",
+            new BigDecimal("12000000.00"),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            true,
+            "Lab deployment",
+            Instant.now());
+
+    var handoverRes = controller.generateHandoverActPdf(handoverReq);
+    assertThat(handoverRes.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(handoverRes.getHeaders().getFirst("X-Form-Code")).isEqualTo("FT-12.9");
+    assertThat(new String(handoverRes.getBody(), 0, 5)).isEqualTo("%PDF-");
+
+    // 2. Inventory Opis PDF
+    UUID sessionId = UUID.randomUUID();
+    var sessionReq =
+        new uz.ttpu.inventory.report.api.InventorySessionPrintRequest(
+            sessionId,
+            "SES-2026-Q1",
+            "ORD-101",
+            Instant.now(),
+            Instant.now(),
+            "IN_PROGRESS",
+            UUID.randomUUID(),
+            List.of(),
+            List.of(),
+            5,
+            1,
+            0,
+            0,
+            List.of(),
+            List.of());
+
+    var opisRes = controller.generateInventoryOpisPdf(sessionReq);
+    assertThat(opisRes.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(opisRes.getHeaders().getFirst("X-Form-Code")).isEqualTo("FT-9.13");
+    assertThat(new String(opisRes.getBody(), 0, 5)).isEqualTo("%PDF-");
+
+    // 3. Comparison Statement PDF
+    var compRes = controller.generateInventoryComparisonStatementPdf(sessionReq);
+    assertThat(compRes.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(compRes.getHeaders().getFirst("X-Form-Code")).isEqualTo("FT-9.13");
+    assertThat(new String(compRes.getBody(), 0, 5)).isEqualTo("%PDF-");
+
+    // 4. Final Act PDF
+    var finalRes = controller.generateInventoryFinalActPdf(sessionReq);
+    assertThat(finalRes.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(finalRes.getHeaders().getFirst("X-Form-Code")).isEqualTo("FT-9.13");
+    assertThat(new String(finalRes.getBody(), 0, 5)).isEqualTo("%PDF-");
+
+    // 5. Attach E-IMZO signature
+    String base64Pdf = java.util.Base64.getEncoder().encodeToString(handoverRes.getBody());
+    var attachReq =
+        new uz.ttpu.inventory.report.api.AttachPdfSignatureRequest(
+            "HANDOVER_ACT_FT_12_9",
+            opId,
+            "ACT-2026-999",
+            "FT-12.9",
+            "ft-12-9-handover-act-ACT-2026-999.pdf",
+            base64Pdf,
+            "30101800010014",
+            "201122919",
+            "Rector Jamshid",
+            "TTPU",
+            "CERT-999");
+
+    var signedRes = controller.attachSignatureToPdf(attachReq);
+    assertThat(signedRes.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(signedRes.getHeaders().getFirst("X-EImzo-Signature-Count")).isEqualTo("1");
+    assertThat(new String(signedRes.getBody(), 0, 5)).isEqualTo("%PDF-");
+  }
 }

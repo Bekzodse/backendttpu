@@ -310,6 +310,123 @@ class ArchUnitModularityTest {
         .isEmpty();
   }
 
+  @Test
+  @DisplayName("7. Repositories are strictly internal and never accessed across module boundaries")
+  void repositoriesAreOnlyAccessedByTheirOwningModule() {
+    List<String> violations = new ArrayList<>();
+
+    for (JavaClass sourceClass : importedClasses) {
+      Optional<ModuleAndLayer> sourceInfo = parseModuleAndLayer(sourceClass.getPackageName());
+      if (sourceInfo.isEmpty()) {
+        continue;
+      }
+
+      for (Dependency dependency : sourceClass.getDirectDependenciesFromSelf()) {
+        JavaClass targetClass = dependency.getTargetClass();
+        Optional<ModuleAndLayer> targetInfo = parseModuleAndLayer(targetClass.getPackageName());
+        if (targetInfo.isEmpty()) {
+          continue;
+        }
+
+        boolean differentModule = !sourceInfo.get().module().equals(targetInfo.get().module());
+        boolean targetIsRepo = "repository".equals(targetInfo.get().layer());
+
+        if (differentModule && targetIsRepo) {
+          violations.add(
+              sourceClass.getName()
+                  + " (in "
+                  + sourceInfo.get().module()
+                  + ") accesses repository of another module: "
+                  + targetClass.getName()
+                  + " (in "
+                  + targetInfo.get().module()
+                  + ".repository)");
+        }
+      }
+    }
+
+    assertThat(violations)
+        .as("Repositories must never be accessed across module boundaries")
+        .isEmpty();
+  }
+
+  @Test
+  @DisplayName("8. Spring Web Controllers must reside strictly in .api packages")
+  void controllersMustOnlyResideInApiPackage() {
+    List<String> violations = new ArrayList<>();
+
+    for (JavaClass javaClass : importedClasses) {
+      boolean isController =
+          javaClass.isAnnotatedWith(org.springframework.web.bind.annotation.RestController.class)
+              || javaClass.isAnnotatedWith(org.springframework.stereotype.Controller.class);
+      if (!isController) {
+        continue;
+      }
+
+      Optional<ModuleAndLayer> info = parseModuleAndLayer(javaClass.getPackageName());
+      if (info.isEmpty() || !"api".equals(info.get().layer())) {
+        violations.add(
+            "Controller "
+                + javaClass.getName()
+                + " must reside in an .api package but was in "
+                + javaClass.getPackageName());
+      }
+    }
+
+    assertThat(violations).as("Controllers must reside strictly in .api packages").isEmpty();
+  }
+
+  @Test
+  @DisplayName("9. Spring Services must reside strictly in .service packages")
+  void servicesMustOnlyResideInServicePackage() {
+    List<String> violations = new ArrayList<>();
+
+    for (JavaClass javaClass : importedClasses) {
+      if (!javaClass.isAnnotatedWith(org.springframework.stereotype.Service.class)) {
+        continue;
+      }
+
+      Optional<ModuleAndLayer> info = parseModuleAndLayer(javaClass.getPackageName());
+      if (info.isEmpty() || !"service".equals(info.get().layer())) {
+        violations.add(
+            "Service "
+                + javaClass.getName()
+                + " must reside in a .service package but was in "
+                + javaClass.getPackageName());
+      }
+    }
+
+    assertThat(violations).as("Services must reside strictly in .service packages").isEmpty();
+  }
+
+  @Test
+  @DisplayName("10. Spring Data Repositories must reside strictly in .repository packages")
+  void repositoriesMustOnlyResideInRepositoryPackage() {
+    List<String> violations = new ArrayList<>();
+
+    for (JavaClass javaClass : importedClasses) {
+      boolean isRepo =
+          javaClass.isAssignableTo(org.springframework.data.repository.Repository.class)
+              || javaClass.isAnnotatedWith(org.springframework.stereotype.Repository.class);
+      if (!isRepo) {
+        continue;
+      }
+
+      Optional<ModuleAndLayer> info = parseModuleAndLayer(javaClass.getPackageName());
+      if (info.isEmpty() || !"repository".equals(info.get().layer())) {
+        violations.add(
+            "Repository "
+                + javaClass.getName()
+                + " must reside in a .repository package but was in "
+                + javaClass.getPackageName());
+      }
+    }
+
+    assertThat(violations)
+        .as("Repositories must reside strictly in .repository packages")
+        .isEmpty();
+  }
+
   private static Optional<ModuleAndLayer> parseModuleAndLayer(String packageName) {
     if (!packageName.startsWith(BASE_PACKAGE + ".")) {
       return Optional.empty();
