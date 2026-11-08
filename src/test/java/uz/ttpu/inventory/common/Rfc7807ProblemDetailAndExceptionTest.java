@@ -15,6 +15,9 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import uz.ttpu.inventory.common.api.GlobalExceptionHandler;
 import uz.ttpu.inventory.common.domain.ErrorCode;
 import uz.ttpu.inventory.common.domain.ProblemDetailFactory;
@@ -92,5 +95,27 @@ class Rfc7807ProblemDetailAndExceptionTest {
         handler.handleAccessDenied(new AccessDeniedException("Access denied"), req);
     assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     assertThat(forbidden.getBody().getProperties()).containsEntry("errorCode", "ERR_ACCESS_DENIED");
+
+    ResponseEntity<ProblemDetail> noResource =
+        handler.handleNoResourceFound(
+            new NoResourceFoundException(
+                org.springframework.http.HttpMethod.GET, "/api/v1/missing"),
+            req);
+    assertThat(noResource.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(noResource.getBody().getProperties())
+        .containsEntry("errorCode", "ERR_RESOURCE_NOT_FOUND");
+
+    ResponseEntity<ProblemDetail> methodNotAllowed =
+        handler.handleMethodNotSupported(new HttpRequestMethodNotSupportedException("POST"), req);
+    assertThat(methodNotAllowed.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(methodNotAllowed.getBody().getProperties())
+        .containsEntry("errorCode", "ERR_BAD_REQUEST");
+
+    ResponseEntity<ProblemDetail> mediaTypeNotSupported =
+        handler.handleMediaTypeNotSupported(
+            new HttpMediaTypeNotSupportedException("Unsupported media type"), req);
+    assertThat(mediaTypeNotSupported.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(mediaTypeNotSupported.getBody().getProperties())
+        .containsEntry("errorCode", "ERR_BAD_REQUEST");
   }
 }

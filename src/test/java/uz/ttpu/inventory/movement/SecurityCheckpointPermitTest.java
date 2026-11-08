@@ -204,4 +204,18 @@ class SecurityCheckpointPermitTest {
     assertThat(checkpoint.decision()).isEqualTo("MAY_NOT_LEAVE");
     assertThat(checkpoint.message()).contains("No active off-campus permit found");
   }
+
+  @Test
+  @DisplayName("B3.4: Unrecognized QR scanned returns MAY_NOT_LEAVE")
+  void testUnrecognizedQrReturnsMayNotLeave() {
+    String qrCode = "TTPU-QR-UNKNOWN";
+    when(assetLogisticsApi.findItemByIdOrQrOptional(null, qrCode)).thenReturn(Optional.empty());
+
+    PermitCheckpointResultDto checkpoint = permitService.verifySecurityCheckpoint(qrCode);
+
+    assertThat(checkpoint).isNotNull();
+    assertThat(checkpoint.mayLeave()).isFalse();
+    assertThat(checkpoint.decision()).isEqualTo("MAY_NOT_LEAVE");
+    assertThat(checkpoint.message()).contains("Item not recognized");
+  }
 }
