@@ -280,4 +280,28 @@ TTPU-102,HP LaserJet Pro,SN-HP-01,M404,CAT-IT,IT,B-MAIN,2,204,DEP-IT,EMP-001,Sar
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("already been committed");
   }
+
+  @Test
+  @DisplayName("Get, cancel and sample generation for staged 1C imports")
+  void testStagingPreviewLifecycleAndSampleCsv() {
+    byte[] sample = service.generateSampleCsv();
+    assertThat(sample).isNotEmpty();
+    assertThat(new String(sample, StandardCharsets.UTF_8)).contains("Inventory Number");
+
+    String csv =
+        """
+Inventory Number,Asset Name,Serial Number,Model,Category Code,Category Name,Building Code,Floor Number,Room Number,Department Code,Employee Code,Employee Full Name,Purchase Price,Residual Value,1C Ref ID
+TTPU-SAMPLE-1,Dell Monitor,SN-M-01,U2419,CAT-IT,IT,B-MAIN,2,204,DEP-IT,EMP-001,Sardor Karimov,2000000.00,1800000.00,1C-S1
+""";
+    String b64 = Base64.getEncoder().encodeToString(csv.getBytes(StandardCharsets.UTF_8));
+    OneCImportPreviewResponseDto preview =
+        service.createPreview(new OneCImportPreviewRequest(b64, "sample.csv", "B-MAIN", false));
+
+    OneCImportPreviewResponseDto fetched = service.getStagedPreview(preview.stagingId());
+    assertThat(fetched.stagingId()).isEqualTo(preview.stagingId());
+
+    service.cancelStagedImport(preview.stagingId());
+    assertThatThrownBy(() -> service.getStagedPreview(preview.stagingId()))
+        .isInstanceOf(uz.ttpu.inventory.common.domain.ResourceNotFoundException.class);
+  }
 }

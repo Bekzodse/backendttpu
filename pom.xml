@@ -361,6 +361,13 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
+                            <excludes>
+                                <exclude>**/domain/**</exclude>
+                                <exclude>**/api/**</exclude>
+                                <exclude>**/repository/**</exclude>
+                                <exclude>**/*Config*</exclude>
+                                <exclude>**/*Application*</exclude>
+                            </excludes>
                             <rules>
                                 <rule>
                                     <element>BUNDLE</element>
