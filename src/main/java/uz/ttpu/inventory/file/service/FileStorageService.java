@@ -38,8 +38,27 @@ public class FileStorageService implements FileStorageApi {
   private static final Set<String> ALLOWED_PHOTO_TYPES =
       Set.of("image/jpeg", "image/jpg", "image/png", "image/webp");
 
-  private static final Set<String> ALLOWED_DOCUMENT_TYPES =
-      Set.of("application/pdf", "image/jpeg", "image/jpg", "image/png");
+  private static final Set<String> ALLOWED_SIGNED_PDF_TYPES = Set.of("application/pdf");
+
+  private static final Set<String> ALLOWED_SCANNED_DOC_TYPES =
+      Set.of("application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp", "image/tiff");
+
+  private static final Set<String> ALLOWED_RECEIPT_ATTACHMENT_TYPES =
+      Set.of(
+          "application/pdf",
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "application/vnd.ms-excel",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+  private static final Set<String> ALLOWED_REPORT_EXPORT_TYPES =
+      Set.of(
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "text/csv",
+          "application/pdf");
 
   private final StoredFileRecordRepository storedFileRecordRepository;
   private final StoredFileMapper storedFileMapper;
@@ -209,51 +228,56 @@ public class FileStorageService implements FileStorageApi {
     }
 
     String normalizedType = contentType.trim().toLowerCase(Locale.ROOT);
-    boolean isPhoto =
-        (category == FileCategory.ITEM_PHOTO || category == FileCategory.REPAIR_PHOTO);
+    Set<String> allowedTypes;
+    long maxSizeBytes;
 
-    if (isPhoto) {
-      if (!ALLOWED_PHOTO_TYPES.contains(normalizedType)) {
-        throw new IllegalArgumentException(
-            "File content-type '"
-                + contentType
-                + "' is not permitted for category "
-                + category
-                + ". Allowed types: "
-                + ALLOWED_PHOTO_TYPES);
+    long defaultMaxPhoto =
+        (minioProperties != null) ? minioProperties.getMaxPhotoSizeBytes() : 10 * 1024 * 1024L;
+    long defaultMaxDoc =
+        (minioProperties != null) ? minioProperties.getMaxDocumentSizeBytes() : 25 * 1024 * 1024L;
+
+    switch (category) {
+      case ITEM_PHOTO, REPAIR_PHOTO -> {
+        allowedTypes = ALLOWED_PHOTO_TYPES;
+        maxSizeBytes = defaultMaxPhoto;
       }
-      long maxPhotoBytes =
-          (minioProperties != null) ? minioProperties.getMaxPhotoSizeBytes() : 10 * 1024 * 1024L;
-      if (bytes.length > maxPhotoBytes) {
-        throw new IllegalArgumentException(
-            "File size ("
-                + bytes.length
-                + " bytes) exceeds maximum limit of "
-                + maxPhotoBytes
-                + " bytes for category "
-                + category);
+      case SIGNED_PDF_ACT -> {
+        allowedTypes = ALLOWED_SIGNED_PDF_TYPES;
+        maxSizeBytes = defaultMaxDoc;
       }
-    } else {
-      if (!ALLOWED_DOCUMENT_TYPES.contains(normalizedType)) {
-        throw new IllegalArgumentException(
-            "File content-type '"
-                + contentType
-                + "' is not permitted for category "
-                + category
-                + ". Allowed types: "
-                + ALLOWED_DOCUMENT_TYPES);
+      case SCANNED_DOCUMENT -> {
+        allowedTypes = ALLOWED_SCANNED_DOC_TYPES;
+        maxSizeBytes = defaultMaxDoc;
       }
-      long maxDocBytes =
-          (minioProperties != null) ? minioProperties.getMaxDocumentSizeBytes() : 25 * 1024 * 1024L;
-      if (bytes.length > maxDocBytes) {
-        throw new IllegalArgumentException(
-            "File size ("
-                + bytes.length
-                + " bytes) exceeds maximum limit of "
-                + maxDocBytes
-                + " bytes for category "
-                + category);
+      case RECEIPT_ATTACHMENT -> {
+        allowedTypes = ALLOWED_RECEIPT_ATTACHMENT_TYPES;
+        maxSizeBytes = defaultMaxDoc;
       }
+      case REPORT_EXPORT -> {
+        allowedTypes = ALLOWED_REPORT_EXPORT_TYPES;
+        maxSizeBytes = defaultMaxDoc;
+      }
+      default -> throw new IllegalArgumentException("Unsupported file category: " + category);
+    }
+
+    if (!allowedTypes.contains(normalizedType)) {
+      throw new IllegalArgumentException(
+          "File content-type '"
+              + contentType
+              + "' is not permitted for category "
+              + category
+              + ". Allowed types: "
+              + allowedTypes);
+    }
+
+    if (bytes.length > maxSizeBytes) {
+      throw new IllegalArgumentException(
+          "File size ("
+              + bytes.length
+              + " bytes) exceeds maximum limit of "
+              + maxSizeBytes
+              + " bytes for category "
+              + category);
     }
   }
 

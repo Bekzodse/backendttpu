@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -103,6 +104,18 @@ public class IntegrationController {
               + " error.")
   public OutboxMessageDto retryOutboxMessage(@PathVariable UUID id) {
     return outboxWorkerService.retryOutboxMessage(id);
+  }
+
+  @GetMapping("/outbox/circuit-breakers")
+  @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTANT')")
+  @Operation(
+      summary =
+          "Get live Resilience4j CircuitBreaker metrics and states for external worker targets",
+      description =
+          "Returns the real-time circuit breaker states, failure rates, and call counters for"
+              + " ONE_C, HEMIS, and E_IMZO.")
+  public Map<String, Object> getCircuitBreakers() {
+    return outboxWorkerService.getCircuitBreakerDetails();
   }
 
   @PostMapping("/1c/items")

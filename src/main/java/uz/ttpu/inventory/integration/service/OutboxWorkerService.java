@@ -292,6 +292,23 @@ public class OutboxWorkerService implements OutboxIntegrationApi {
     return circuitBreakerRegistry.circuitBreaker(targetSystem.name()).getState().name();
   }
 
+  @Override
+  public Map<String, Object> getCircuitBreakerDetails() {
+    Map<String, Object> result = new LinkedHashMap<>();
+    for (ExternalSystemType type : ExternalSystemType.values()) {
+      CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker(type.name());
+      Map<String, Object> details = new LinkedHashMap<>();
+      details.put("state", cb.getState().name());
+      details.put("failureRate", cb.getMetrics().getFailureRate());
+      details.put("numberOfBufferedCalls", cb.getMetrics().getNumberOfBufferedCalls());
+      details.put("numberOfFailedCalls", cb.getMetrics().getNumberOfFailedCalls());
+      details.put("numberOfSuccessfulCalls", cb.getMetrics().getNumberOfSuccessfulCalls());
+      details.put("numberOfSlowCalls", cb.getMetrics().getNumberOfSlowCalls());
+      result.put(type.name(), details);
+    }
+    return result;
+  }
+
   private Duration computeBackoff(int attemptNumber) {
     long seconds = Math.min(300L, (long) Math.pow(2, Math.max(1, attemptNumber)));
     return Duration.ofSeconds(seconds);

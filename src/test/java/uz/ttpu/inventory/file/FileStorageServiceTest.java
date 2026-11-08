@@ -120,6 +120,49 @@ class FileStorageServiceTest {
                     "user1"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("not permitted for category SIGNED_PDF_ACT");
+
+    // JPEG is not allowed for SIGNED_PDF_ACT (must strictly be application/pdf)
+    assertThatThrownBy(
+            () ->
+                service.storeFile(
+                    new UploadFileRequest(
+                        "photo.jpg", "image/jpeg", validBase64, FileCategory.SIGNED_PDF_ACT, refId),
+                    "user1"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("not permitted for category SIGNED_PDF_ACT");
+
+    // Text is not allowed for SCANNED_DOCUMENT
+    assertThatThrownBy(
+            () ->
+                service.storeFile(
+                    new UploadFileRequest(
+                        "doc.txt", "text/plain", validBase64, FileCategory.SCANNED_DOCUMENT, refId),
+                    "user1"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("not permitted for category SCANNED_DOCUMENT");
+  }
+
+  @Test
+  @DisplayName("Stores scanned document with permitted MIME type (PDF or image)")
+  void storesScannedDocumentSuccessfully() {
+    byte[] docBytes = "%PDF-1.4 Scanned Invoice".getBytes(StandardCharsets.UTF_8);
+    String base64 = Base64.getEncoder().encodeToString(docBytes);
+    UUID refId = UUID.randomUUID();
+
+    StoredFileDto stored =
+        service.storeFile(
+            new UploadFileRequest(
+                "invoice-scan.pdf",
+                "application/pdf",
+                base64,
+                FileCategory.SCANNED_DOCUMENT,
+                refId),
+            "accountant1");
+
+    assertThat(stored.category()).isEqualTo(FileCategory.SCANNED_DOCUMENT);
+    assertThat(stored.fileKey()).startsWith("scanned_document/");
+    assertThat(stored.uploadedByUsername()).isEqualTo("accountant1");
+    verify(s3Client).putObject(any(PutObjectRequest.class), any(RequestBody.class));
   }
 
   @Test
@@ -135,6 +178,23 @@ class FileStorageServiceTest {
                 service.storeFile(
                     new UploadFileRequest(
                         "large.jpg", "image/jpeg", largeBase64, FileCategory.ITEM_PHOTO, refId),
+                    "user1"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("exceeds maximum limit");
+
+    // 2.5 MB exceeds 2MB limit for documents
+    byte[] largeDocBytes = new byte[2500 * 1024];
+    String largeDocBase64 = Base64.getEncoder().encodeToString(largeDocBytes);
+
+    assertThatThrownBy(
+            () ->
+                service.storeFile(
+                    new UploadFileRequest(
+                        "large.pdf",
+                        "application/pdf",
+                        largeDocBase64,
+                        FileCategory.SCANNED_DOCUMENT,
+                        refId),
                     "user1"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("exceeds maximum limit");

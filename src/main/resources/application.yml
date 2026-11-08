@@ -54,6 +54,54 @@ file:
     max-document-size-bytes: 26214400
     auto-create-bucket: ${MINIO_AUTO_CREATE_BUCKET:true}
 
+app:
+  integration:
+    outbox:
+      poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:15000}
+      batch-size: ${OUTBOX_BATCH_SIZE:50}
+    resilience:
+      retry-max-attempts: 3
+      retry-wait-ms: 100
+      cb-failure-rate-threshold: 50.0
+      cb-minimum-calls: 4
+      cb-sliding-window-size: 6
+      cb-wait-open-seconds: 30
+      cb-permitted-calls-in-half-open: 2
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 6
+        minimum-number-of-calls: 4
+        failure-rate-threshold: 50.0
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+    instances:
+      ONE_C:
+        base-config: default
+      HEMIS:
+        base-config: default
+      E_IMZO:
+        base-config: default
+      outboxWorker:
+        base-config: default
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 100ms
+    instances:
+      ONE_C:
+        base-config: default
+      HEMIS:
+        base-config: default
+      E_IMZO:
+        base-config: default
+      outboxWorker:
+        base-config: default
+
+
 management:
   endpoints:
     web:

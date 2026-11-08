@@ -411,4 +411,18 @@ class OutboxWorkerAndResilienceTest {
     assertThat(msg.getStatus()).isEqualTo(OutboxStatus.PENDING);
     assertThat(msg.getLastError()).isNull();
   }
+
+  @Test
+  void getCircuitBreakerDetails_returnsMetricsForAllExternalSystems() {
+    Map<String, Object> details = outboxWorkerService.getCircuitBreakerDetails();
+
+    assertThat(details).containsKeys("ONE_C", "HEMIS", "E_IMZO");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> oneCDetails = (Map<String, Object>) details.get("ONE_C");
+    assertThat(oneCDetails).containsEntry("state", "CLOSED");
+    assertThat(oneCDetails).containsKey("failureRate");
+    assertThat(oneCDetails).containsKey("numberOfBufferedCalls");
+    assertThat(oneCDetails).containsKey("numberOfFailedCalls");
+    assertThat(oneCDetails).containsKey("numberOfSuccessfulCalls");
+  }
 }
