@@ -41,7 +41,7 @@ services:
       start_period: 5s
 
   minio:
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: ttpu-inventory-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -110,7 +110,7 @@ services:
     image: stoplight/prism:5
     container_name: ttpu-inventory-prism-mock
     restart: unless-stopped
-    command: mock -h 0.0.0.0 /tmp/openapi.yaml
+    command: mock -h 0.0.0.0 -m=false /tmp/openapi.yaml
     volumes:
       - ./openapi.yaml:/tmp/openapi.yaml:ro
     ports:
