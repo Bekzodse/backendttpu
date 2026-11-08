@@ -29,7 +29,12 @@ public class SecurityCheckpointController {
 
   private final OffCampusPermitService permitService;
 
-  @GetMapping({"/api/v1/security/checkpoint/{qrId}", "/checkpoint/{qrId}"})
+  @GetMapping({
+    "/api/v1/security/checkpoint/{qrId}",
+    "/checkpoint/{qrId}",
+    "/checkpoint/permit/{qrId}",
+    "/api/v1/security/checkpoint/permit/{qrId}"
+  })
   @SecurityRequirements
   @Operation(
       summary = "Verify if item may leave campus (Gate scan verification)",

@@ -12,9 +12,12 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import uz.ttpu.inventory.common.domain.ClearanceChecklistBlockedException;
 import uz.ttpu.inventory.common.domain.DataWipeRequiredException;
 import uz.ttpu.inventory.common.domain.DeviceRevokedException;
@@ -162,6 +165,30 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(ErrorCode.ERR_ROOM_LOCKED_FOR_INVENTORY.getStatus())
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
         .body(problem);
+  }
+
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<ProblemDetail> handleNoResourceFound(
+      NoResourceFoundException ex, HttpServletRequest request) {
+    return ProblemDetailFactory.toResponseEntity(
+        ErrorCode.ERR_RESOURCE_NOT_FOUND,
+        "Resource not found: " + request.getRequestURI(),
+        request.getLocale(),
+        resolveInstance(request));
+  }
+
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ProblemDetail> handleMethodNotSupported(
+      HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+    return ProblemDetailFactory.toResponseEntity(
+        ErrorCode.ERR_BAD_REQUEST, ex.getMessage(), request.getLocale(), resolveInstance(request));
+  }
+
+  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+  public ResponseEntity<ProblemDetail> handleMediaTypeNotSupported(
+      HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
+    return ProblemDetailFactory.toResponseEntity(
+        ErrorCode.ERR_BAD_REQUEST, ex.getMessage(), request.getLocale(), resolveInstance(request));
   }
 
   @ExceptionHandler(Exception.class)
