@@ -109,6 +109,9 @@ public class Item extends BaseEntity implements DepartmentScoped, BuildingScoped
   @Column(name = "room", length = 255)
   private String room;
 
+  @Column(name = "parent_item_id")
+  private UUID parentItemId;
+
   /**
    * Internal state mutator restricted strictly to {@link
    * uz.ttpu.inventory.asset.service.ItemStateService}.

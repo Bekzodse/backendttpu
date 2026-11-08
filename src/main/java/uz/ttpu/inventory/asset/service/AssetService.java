@@ -781,6 +781,85 @@ public class AssetService implements AssetLogisticsApi {
     return itemMapper.toDto(completed);
   }
 
+  @Override
+  @Transactional
+  public ItemDto receiveReclaimedPart(
+      UUID parentItemId,
+      String partName,
+      String serialNumber,
+      String inventoryNumber,
+      BigDecimal estimatedValue,
+      UUID warehouseBuildingId,
+      UUID warehouseRoomId,
+      String notes,
+      String performedByUsername) {
+    Item parentItem = findItemOrThrow(parentItemId);
+
+    String resolvedInvNumber =
+        (inventoryNumber != null && !inventoryNumber.isBlank())
+            ? inventoryNumber.trim()
+            : "PART-"
+                + parentItem.getInventoryNumber()
+                + "-"
+                + (System.currentTimeMillis() % 10000);
+
+    String qrCode = qrIdService.generateUniquePublicId();
+    BigDecimal resolvedValue =
+        estimatedValue != null
+            ? estimatedValue.setScale(2, java.math.RoundingMode.HALF_UP)
+            : BigDecimal.ZERO.setScale(2, java.math.RoundingMode.HALF_UP);
+
+    UUID resolvedBuildingId =
+        warehouseBuildingId != null ? warehouseBuildingId : parentItem.getBuildingId();
+    UUID resolvedRoomId = warehouseRoomId != null ? warehouseRoomId : parentItem.getRoomId();
+
+    HashMap<String, Object> attributes = new HashMap<>();
+    attributes.put("reclaimedPart", true);
+    attributes.put("reclaimedFromItemId", parentItem.getId().toString());
+    attributes.put("reclaimedFromInventoryNumber", parentItem.getInventoryNumber());
+    if (performedByUsername != null && !performedByUsername.isBlank()) {
+      attributes.put("reclaimedBy", performedByUsername);
+    }
+    if (notes != null && !notes.isBlank()) {
+      attributes.put("reclaimNotes", notes);
+    }
+
+    Item reclaimedPartItem =
+        Item.builder()
+            .inventoryNumber(resolvedInvNumber)
+            .serialNumber(serialNumber)
+            .qrCode(qrCode)
+            .name(partName)
+            .description(
+                "Usable part reclaimed from written-off asset "
+                    + parentItem.getInventoryNumber()
+                    + (notes != null ? ": " + notes : ""))
+            .categoryId(parentItem.getCategoryId())
+            .state(ItemState.OMBORDA)
+            .purchasePrice(resolvedValue)
+            .residualValue(resolvedValue)
+            .replacementRecommended(false)
+            .buildingId(resolvedBuildingId)
+            .roomId(resolvedRoomId)
+            .parentItemId(parentItem.getId())
+            .customAttributes(attributes)
+            .build();
+
+    Item saved = itemRepository.save(reclaimedPartItem);
+    return itemMapper.toDto(saved);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<ItemDto> findReclaimedPartsByParentItem(UUID parentItemId) {
+    if (parentItemId == null) {
+      return List.of();
+    }
+    return itemRepository.findAllByParentItemId(parentItemId).stream()
+        .map(itemMapper::toDto)
+        .toList();
+  }
+
   private void evaluate50PercentRule(
       Item item, UUID ticketId, String ticketNumber, BigDecimal cost) {
     if (item == null || cost == null || cost.compareTo(BigDecimal.ZERO) <= 0) {

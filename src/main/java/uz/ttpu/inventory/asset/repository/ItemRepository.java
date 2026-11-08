@@ -39,4 +39,6 @@ public interface ItemRepository extends JpaRepository<Item, UUID>, JpaSpecificat
   List<Item> findAllByStateInAndExpectedReturnAtBefore(Collection<ItemState> states, Instant now);
 
   List<Item> findAllByWarrantyExpiresAtBetween(Instant from, Instant to);
+
+  List<Item> findAllByParentItemId(UUID parentItemId);
 }

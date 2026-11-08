@@ -30,9 +30,61 @@ public record ItemDto(
     UUID custodianEmployeeId,
     Map<String, Object> customAttributes,
     String oneCRefId,
+    UUID parentItemId,
     Instant createdAt,
     Instant updatedAt)
     implements DepartmentScoped, BuildingScoped {
+
+  public ItemDto(
+      UUID id,
+      String inventoryNumber,
+      String serialNumber,
+      String qrCode,
+      String name,
+      String description,
+      UUID categoryId,
+      ItemState state,
+      BigDecimal purchasePrice,
+      BigDecimal residualValue,
+      boolean replacementRecommended,
+      Instant commissionedAt,
+      Instant warrantyExpiresAt,
+      Instant expectedReturnAt,
+      UUID buildingId,
+      UUID floorId,
+      UUID roomId,
+      UUID departmentId,
+      UUID custodianEmployeeId,
+      Map<String, Object> customAttributes,
+      String oneCRefId,
+      Instant createdAt,
+      Instant updatedAt) {
+    this(
+        id,
+        inventoryNumber,
+        serialNumber,
+        qrCode,
+        name,
+        description,
+        categoryId,
+        state,
+        purchasePrice,
+        residualValue,
+        replacementRecommended,
+        commissionedAt,
+        warrantyExpiresAt,
+        expectedReturnAt,
+        buildingId,
+        floorId,
+        roomId,
+        departmentId,
+        custodianEmployeeId,
+        customAttributes,
+        oneCRefId,
+        null,
+        createdAt,
+        updatedAt);
+  }
 
   public ItemDto(
       UUID id,
@@ -79,6 +131,7 @@ public record ItemDto(
         custodianEmployeeId,
         customAttributes,
         oneCRefId,
+        null,
         createdAt,
         updatedAt);
   }

@@ -70,4 +70,17 @@ public interface AssetLogisticsApi {
   Optional<DataWipeRecordDto> getLatestDataWipe(UUID itemId);
 
   ItemDto completeWriteOff(UUID itemId, String documentNumber);
+
+  ItemDto receiveReclaimedPart(
+      UUID parentItemId,
+      String partName,
+      String serialNumber,
+      String inventoryNumber,
+      BigDecimal estimatedValue,
+      UUID warehouseBuildingId,
+      UUID warehouseRoomId,
+      String notes,
+      String performedByUsername);
+
+  List<ItemDto> findReclaimedPartsByParentItem(UUID parentItemId);
 }

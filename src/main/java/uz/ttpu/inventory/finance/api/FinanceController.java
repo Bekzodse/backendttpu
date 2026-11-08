@@ -82,4 +82,16 @@ public class FinanceController {
   public List<DepreciationForecastDto> listItemForecasts(@PathVariable UUID itemId) {
     return depreciationService.listForecastsForItem(itemId);
   }
+
+  @GetMapping({"/reaching-full", "/reaching-full-depreciation", "/expiring"})
+  @PreAuthorize("isAuthenticated()")
+  @Operation(
+      summary = "Fetch items reaching full depreciation within specified months",
+      description =
+          "Calculates remaining straight-line depreciation months for active assets and returns"
+              + " items reaching full depreciation within the next N months (default 12).")
+  public List<ItemReachingFullDepreciationDto> getItemsReachingFullDepreciation(
+      @RequestParam(defaultValue = "12") int months) {
+    return depreciationService.findItemsReachingFullDepreciation(months);
+  }
 }

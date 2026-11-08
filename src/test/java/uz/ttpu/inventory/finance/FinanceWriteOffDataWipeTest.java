@@ -31,8 +31,12 @@ import uz.ttpu.inventory.asset.service.ItemMapper;
 import uz.ttpu.inventory.asset.service.ItemStateService;
 import uz.ttpu.inventory.asset.service.QrIdService;
 import uz.ttpu.inventory.common.domain.DataWipeRequiredException;
+import uz.ttpu.inventory.finance.api.ReclaimablePartRequest;
+import uz.ttpu.inventory.finance.api.ReclaimedPartDto;
 import uz.ttpu.inventory.finance.api.WriteOffCompletionRequest;
 import uz.ttpu.inventory.finance.api.WriteOffResultDto;
+import uz.ttpu.inventory.finance.domain.WriteOffReclaimedPart;
+import uz.ttpu.inventory.finance.repository.WriteOffReclaimedPartRepository;
 import uz.ttpu.inventory.finance.service.FinanceWriteOffService;
 import uz.ttpu.inventory.references.api.CategoryDto;
 import uz.ttpu.inventory.references.api.ReferenceSyncApi;
@@ -42,14 +46,17 @@ class FinanceWriteOffDataWipeTest {
   private final Map<UUID, Item> itemDb = new HashMap<>();
   private final List<DataWipeRecord> dataWipeDb = new ArrayList<>();
   private final Map<UUID, CategoryDto> categoryDb = new HashMap<>();
+  private final List<WriteOffReclaimedPart> reclaimedPartsDb = new ArrayList<>();
 
   private FinanceWriteOffService writeOffService;
+  private AssetService assetService;
 
   @BeforeEach
   void setUp() {
     itemDb.clear();
     dataWipeDb.clear();
     categoryDb.clear();
+    reclaimedPartsDb.clear();
 
     ItemRepository itemRepository = mock(ItemRepository.class);
     when(itemRepository.save(any(Item.class)))
@@ -64,6 +71,14 @@ class FinanceWriteOffDataWipeTest {
             });
     when(itemRepository.findById(any(UUID.class)))
         .thenAnswer(inv -> Optional.ofNullable(itemDb.get(inv.getArgument(0))));
+    when(itemRepository.findAllByParentItemId(any(UUID.class)))
+        .thenAnswer(
+            inv -> {
+              UUID parentId = inv.getArgument(0);
+              return itemDb.values().stream()
+                  .filter(it -> parentId.equals(it.getParentItemId()))
+                  .toList();
+            });
 
     ItemStateHistoryRepository historyRepository = mock(ItemStateHistoryRepository.class);
     when(historyRepository.save(any(ItemStateHistory.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -105,7 +120,7 @@ class FinanceWriteOffDataWipeTest {
     QrIdService qrIdService = new QrIdService(itemRepository);
     ItemMapper itemMapper = Mappers.getMapper(ItemMapper.class);
 
-    AssetService assetService =
+    assetService =
         new AssetService(
             itemRepository,
             historyRepository,
@@ -116,7 +131,29 @@ class FinanceWriteOffDataWipeTest {
             referenceSyncApi,
             eventPublisher);
 
-    writeOffService = new FinanceWriteOffService(assetService);
+    WriteOffReclaimedPartRepository writeOffReclaimedPartRepository =
+        mock(WriteOffReclaimedPartRepository.class);
+    when(writeOffReclaimedPartRepository.save(any(WriteOffReclaimedPart.class)))
+        .thenAnswer(
+            inv -> {
+              WriteOffReclaimedPart p = inv.getArgument(0);
+              if (p.getId() == null) {
+                p.setId(UUID.randomUUID());
+              }
+              reclaimedPartsDb.add(p);
+              return p;
+            });
+    when(writeOffReclaimedPartRepository.findAllByWrittenOffItemIdOrderByReclaimedAtDesc(
+            any(UUID.class)))
+        .thenAnswer(
+            inv -> {
+              UUID pId = inv.getArgument(0);
+              return reclaimedPartsDb.stream()
+                  .filter(p -> p.getWrittenOffItemId().equals(pId))
+                  .toList();
+            });
+
+    writeOffService = new FinanceWriteOffService(assetService, writeOffReclaimedPartRepository);
   }
 
   @Test
@@ -132,7 +169,7 @@ class FinanceWriteOffDataWipeTest {
             "Laptop Computers",
             null,
             5,
-            java.util.Map.of(),
+            Map.of(),
             true,
             Instant.now(),
             Instant.now()));
@@ -177,7 +214,7 @@ class FinanceWriteOffDataWipeTest {
             "Enterprise Servers",
             null,
             5,
-            java.util.Map.of(),
+            Map.of(),
             true,
             Instant.now(),
             Instant.now()));
@@ -224,7 +261,7 @@ class FinanceWriteOffDataWipeTest {
             "Office Furniture",
             null,
             5,
-            java.util.Map.of(),
+            Map.of(),
             true,
             Instant.now(),
             Instant.now()));
@@ -251,5 +288,160 @@ class FinanceWriteOffDataWipeTest {
     assertThat(result).isNotNull();
     assertThat(chair.getState()).isEqualTo(ItemState.HISOBDAN_CHIQARILGAN);
     assertThat(dataWipeDb).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "Prompt 17: Usable parts can be received back into warehouse stock during write-off,"
+          + " maintaining DB link to original item ID")
+  void testUsablePartsReclaimedDuringWriteOffMaintainsDbLinkToParent() {
+    UUID categoryId = UUID.randomUUID();
+    categoryDb.put(
+        categoryId,
+        new CategoryDto(
+            categoryId,
+            "CAT-SRV",
+            "Servers",
+            null,
+            5,
+            Map.of(),
+            true,
+            Instant.now(),
+            Instant.now()));
+
+    UUID warehouseBuildingId = UUID.randomUUID();
+    UUID warehouseRoomId = UUID.randomUUID();
+
+    UUID itemId = UUID.randomUUID();
+    Item server =
+        Item.builder()
+            .inventoryNumber("INV-SRV-101")
+            .name("Dell PowerEdge R740 Server")
+            .categoryId(categoryId)
+            .state(ItemState.HISOBDAN_CHIQARISHGA_TAVSIYA_ETILGAN)
+            .purchasePrice(new BigDecimal("75000000.00"))
+            .residualValue(BigDecimal.ZERO)
+            .buildingId(warehouseBuildingId)
+            .roomId(warehouseRoomId)
+            .build();
+    server.setId(itemId);
+    itemDb.put(itemId, server);
+
+    List<ReclaimablePartRequest> usableParts =
+        List.of(
+            new ReclaimablePartRequest(
+                "DDR4 ECC 32GB RAM Module",
+                "SN-RAM-01",
+                "INV-PART-RAM-01",
+                new BigDecimal("1200000.00"),
+                warehouseBuildingId,
+                warehouseRoomId,
+                "Tested functional in lab"),
+            new ReclaimablePartRequest(
+                "Dell 750W Titanium Power Supply",
+                "SN-PSU-02",
+                "INV-PART-PSU-02",
+                new BigDecimal("1800000.00"),
+                warehouseBuildingId,
+                warehouseRoomId,
+                "Working redundant PSU"));
+
+    WriteOffCompletionRequest request =
+        new WriteOffCompletionRequest(
+            "ACT-WO-SRV-101",
+            "Decommissioned due to age",
+            "Rustam SysAdmin",
+            "ATA Secure Erase Enhanced",
+            usableParts);
+
+    WriteOffResultDto result = writeOffService.completeWriteOff(itemId, request);
+
+    assertThat(result).isNotNull();
+    assertThat(result.dataWipeVerified()).isTrue();
+    assertThat(server.getState()).isEqualTo(ItemState.HISOBDAN_CHIQARILGAN);
+
+    // Verify reclaimed parts returned in DTO
+    assertThat(result.reclaimedParts()).hasSize(2);
+    ReclaimedPartDto ramPart = result.reclaimedParts().get(0);
+    assertThat(ramPart.partName()).isEqualTo("DDR4 ECC 32GB RAM Module");
+    assertThat(ramPart.writtenOffItemId()).isEqualTo(itemId);
+    assertThat(ramPart.warehouseStatus()).isEqualTo("OMBORDA");
+    assertThat(ramPart.estimatedValue()).isEqualByComparingTo("1200000.00");
+
+    // Verify database entities in itemDb
+    List<Item> childrenInDb =
+        itemDb.values().stream().filter(it -> itemId.equals(it.getParentItemId())).toList();
+    assertThat(childrenInDb).hasSize(2);
+
+    for (Item child : childrenInDb) {
+      assertThat(child.getParentItemId()).isEqualTo(itemId);
+      assertThat(child.getState()).isEqualTo(ItemState.OMBORDA);
+      assertThat(child.getBuildingId()).isEqualTo(warehouseBuildingId);
+      assertThat(child.getRoomId()).isEqualTo(warehouseRoomId);
+      assertThat(child.getCustomAttributes()).containsEntry("reclaimedPart", true);
+      assertThat(child.getCustomAttributes())
+          .containsEntry("reclaimedFromItemId", itemId.toString());
+    }
+
+    // Verify listReclaimedParts returns both parts
+    List<ReclaimedPartDto> retrieved = writeOffService.listReclaimedParts(itemId);
+    assertThat(retrieved).hasSize(2);
+  }
+
+  @Test
+  @DisplayName(
+      "Prompt 17: Post-write-off direct part reclamation officially receives item into warehouse"
+          + " stock")
+  void testDirectPostWriteOffPartReclamation() {
+    UUID categoryId = UUID.randomUUID();
+    categoryDb.put(
+        categoryId,
+        new CategoryDto(
+            categoryId,
+            "CAT-PC",
+            "Workstations",
+            null,
+            5,
+            Map.of(),
+            true,
+            Instant.now(),
+            Instant.now()));
+
+    UUID writtenOffItemId = UUID.randomUUID();
+    Item pc =
+        Item.builder()
+            .inventoryNumber("INV-PC-900")
+            .name("HP Z440 Workstation")
+            .categoryId(categoryId)
+            .state(ItemState.HISOBDAN_CHIQARILGAN)
+            .purchasePrice(new BigDecimal("18000000.00"))
+            .residualValue(BigDecimal.ZERO)
+            .build();
+    pc.setId(writtenOffItemId);
+    itemDb.put(writtenOffItemId, pc);
+
+    ReclaimablePartRequest partRequest =
+        new ReclaimablePartRequest(
+            "Nvidia Quadro P4000 GPU",
+            "SN-GPU-8899",
+            "INV-PART-GPU-01",
+            new BigDecimal("3500000.00"),
+            null,
+            null,
+            "Working GPU for student lab");
+
+    ReclaimedPartDto reclaimed =
+        writeOffService.reclaimPart(writtenOffItemId, partRequest, "hardware_engineer");
+
+    assertThat(reclaimed).isNotNull();
+    assertThat(reclaimed.writtenOffItemId()).isEqualTo(writtenOffItemId);
+    assertThat(reclaimed.partName()).isEqualTo("Nvidia Quadro P4000 GPU");
+    assertThat(reclaimed.warehouseStatus()).isEqualTo("OMBORDA");
+
+    Item createdItem = itemDb.get(reclaimed.reclaimedItemId());
+    assertThat(createdItem).isNotNull();
+    assertThat(createdItem.getParentItemId()).isEqualTo(writtenOffItemId);
+    assertThat(createdItem.getState()).isEqualTo(ItemState.OMBORDA);
+    assertThat(createdItem.getResidualValue()).isEqualByComparingTo("3500000.00");
   }
 }

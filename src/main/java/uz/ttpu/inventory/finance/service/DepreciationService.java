@@ -3,8 +3,10 @@ package uz.ttpu.inventory.finance.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import uz.ttpu.inventory.asset.api.AssetLogisticsApi;
 import uz.ttpu.inventory.asset.api.ItemDto;
 import uz.ttpu.inventory.finance.api.DepreciationCalculationRequest;
 import uz.ttpu.inventory.finance.api.DepreciationForecastDto;
+import uz.ttpu.inventory.finance.api.ItemReachingFullDepreciationDto;
 import uz.ttpu.inventory.finance.api.YearlyDepreciationForecastDto;
 import uz.ttpu.inventory.finance.domain.DepreciationRecord;
 import uz.ttpu.inventory.finance.repository.DepreciationRecordRepository;
@@ -109,6 +112,114 @@ public class DepreciationService {
                         rec.getUsefulLifeYears(),
                         rec.getAnnualDepreciation())))
         .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public List<ItemReachingFullDepreciationDto> findItemsReachingFullDepreciation(int withinMonths) {
+    int thresholdMonths = Math.max(1, withinMonths);
+    List<ItemDto> allItems = assetLogisticsApi.listAllItemsForReporting();
+
+    List<ItemReachingFullDepreciationDto> result = new ArrayList<>();
+    LocalDate today = LocalDate.now();
+
+    for (ItemDto item : allItems) {
+      if ("HISOBDAN_CHIQARILGAN".equalsIgnoreCase(item.stateName())) {
+        continue;
+      }
+
+      BigDecimal initialValue =
+          item.purchasePrice() != null
+              ? item.purchasePrice().setScale(2, RoundingMode.HALF_UP)
+              : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+      BigDecimal residualValue =
+          item.residualValue() != null
+              ? item.residualValue().setScale(2, RoundingMode.HALF_UP)
+              : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+      Optional<DepreciationRecord> recOpt =
+          depreciationRecordRepository.findTopByItemIdOrderByCalculatedAtDesc(item.id());
+
+      BigDecimal salvageValue;
+      int usefulLifeYears;
+      BigDecimal annualDepreciation;
+      BigDecimal monthlyDepreciation;
+
+      if (recOpt.isPresent()) {
+        DepreciationRecord rec = recOpt.get();
+        salvageValue =
+            rec.getSalvageValue() != null
+                ? rec.getSalvageValue().setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        usefulLifeYears = rec.getUsefulLifeYears();
+        annualDepreciation = rec.getAnnualDepreciation();
+        monthlyDepreciation = rec.getMonthlyDepreciation();
+        if (rec.getInitialValue() != null && rec.getInitialValue().compareTo(BigDecimal.ZERO) > 0) {
+          initialValue = rec.getInitialValue().setScale(2, RoundingMode.HALF_UP);
+        }
+      } else {
+        salvageValue = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        usefulLifeYears = 5;
+        BigDecimal depreciableBase =
+            initialValue
+                .subtract(salvageValue)
+                .max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+        annualDepreciation =
+            usefulLifeYears > 0
+                ? depreciableBase.divide(
+                    BigDecimal.valueOf(usefulLifeYears), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        monthlyDepreciation =
+            annualDepreciation.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
+      }
+
+      int monthsRemaining;
+      boolean fullyDepreciated;
+      LocalDate projectedDate;
+
+      if (residualValue.compareTo(salvageValue) <= 0) {
+        monthsRemaining = 0;
+        fullyDepreciated = true;
+        projectedDate = today;
+      } else if (monthlyDepreciation.compareTo(BigDecimal.ZERO) > 0) {
+        BigDecimal remainingToDepreciate = residualValue.subtract(salvageValue);
+        BigDecimal monthsBd =
+            remainingToDepreciate.divide(monthlyDepreciation, 0, RoundingMode.CEILING);
+        monthsRemaining = monthsBd.intValue();
+        fullyDepreciated = false;
+        projectedDate = today.plusMonths(monthsRemaining);
+      } else {
+        continue;
+      }
+
+      if (monthsRemaining <= thresholdMonths) {
+        result.add(
+            new ItemReachingFullDepreciationDto(
+                item.id(),
+                item.inventoryNumber(),
+                item.name(),
+                initialValue,
+                residualValue,
+                salvageValue,
+                usefulLifeYears,
+                annualDepreciation,
+                monthlyDepreciation,
+                monthsRemaining,
+                projectedDate,
+                fullyDepreciated));
+      }
+    }
+
+    result.sort(
+        (a, b) -> {
+          int cmp = Integer.compare(a.monthsRemaining(), b.monthsRemaining());
+          if (cmp != 0) {
+            return cmp;
+          }
+          return a.inventoryNumber().compareToIgnoreCase(b.inventoryNumber());
+        });
+
+    return result;
   }
 
   public List<YearlyDepreciationForecastDto> buildYearlySchedule(

@@ -93,6 +93,177 @@ class DepreciationAndSxssfReportTest {
   }
 
   @Test
+  void testFindItemsReachingFullDepreciationWithinNext12Months() {
+    DepreciationRecordRepository repository = mock(DepreciationRecordRepository.class);
+    AssetLogisticsApi assetLogisticsApi = mock(AssetLogisticsApi.class);
+    FinanceMapper financeMapper = Mappers.getMapper(FinanceMapper.class);
+    DepreciationService depreciationService =
+        new DepreciationService(repository, assetLogisticsApi, financeMapper);
+
+    UUID item1Id = UUID.randomUUID(); // Fully depreciated (residual = 0)
+    UUID item2Id =
+        UUID.randomUUID(); // 6 months remaining (residual = 1,200,000; monthly = 200,000)
+    UUID item3Id =
+        UUID.randomUUID(); // 25 months remaining (residual = 25,000,000; monthly = 1,000,000)
+    UUID item4Id = UUID.randomUUID(); // Already written off (HISOBDAN_CHIQARILGAN)
+
+    uz.ttpu.inventory.asset.api.ItemDto item1 =
+        new uz.ttpu.inventory.asset.api.ItemDto(
+            item1Id,
+            "INV-001",
+            "SN-1",
+            "QR1",
+            "Old Laptop",
+            "Desc",
+            UUID.randomUUID(),
+            uz.ttpu.inventory.asset.domain.ItemState.FOYDALANISHDA,
+            new BigDecimal("10000000.00"),
+            BigDecimal.ZERO,
+            false,
+            Instant.now(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            java.util.Map.of(),
+            null,
+            null,
+            Instant.now(),
+            Instant.now());
+
+    uz.ttpu.inventory.asset.api.ItemDto item2 =
+        new uz.ttpu.inventory.asset.api.ItemDto(
+            item2Id,
+            "INV-002",
+            "SN-2",
+            "QR2",
+            "Laser Printer",
+            "Desc",
+            UUID.randomUUID(),
+            uz.ttpu.inventory.asset.domain.ItemState.FOYDALANISHDA,
+            new BigDecimal("12000000.00"),
+            new BigDecimal("1200000.00"),
+            false,
+            Instant.now(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            java.util.Map.of(),
+            null,
+            null,
+            Instant.now(),
+            Instant.now());
+
+    uz.ttpu.inventory.asset.api.ItemDto item3 =
+        new uz.ttpu.inventory.asset.api.ItemDto(
+            item3Id,
+            "INV-003",
+            "SN-3",
+            "QR3",
+            "Enterprise SAN Storage",
+            "Desc",
+            UUID.randomUUID(),
+            uz.ttpu.inventory.asset.domain.ItemState.FOYDALANISHDA,
+            new BigDecimal("60000000.00"),
+            new BigDecimal("25000000.00"),
+            false,
+            Instant.now(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            java.util.Map.of(),
+            null,
+            null,
+            Instant.now(),
+            Instant.now());
+
+    uz.ttpu.inventory.asset.api.ItemDto item4 =
+        new uz.ttpu.inventory.asset.api.ItemDto(
+            item4Id,
+            "INV-004",
+            "SN-4",
+            "QR4",
+            "Scrapped Switch",
+            "Desc",
+            UUID.randomUUID(),
+            uz.ttpu.inventory.asset.domain.ItemState.HISOBDAN_CHIQARILGAN,
+            new BigDecimal("5000000.00"),
+            BigDecimal.ZERO,
+            false,
+            Instant.now(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            java.util.Map.of(),
+            null,
+            null,
+            Instant.now(),
+            Instant.now());
+
+    when(assetLogisticsApi.listAllItemsForReporting())
+        .thenReturn(List.of(item1, item2, item3, item4));
+
+    when(repository.findTopByItemIdOrderByCalculatedAtDesc(item2Id))
+        .thenReturn(
+            java.util.Optional.of(
+                DepreciationRecord.builder()
+                    .itemId(item2Id)
+                    .inventoryNumber("INV-002")
+                    .itemName("Laser Printer")
+                    .initialValue(new BigDecimal("12000000.00"))
+                    .salvageValue(BigDecimal.ZERO)
+                    .usefulLifeYears(5)
+                    .annualDepreciation(new BigDecimal("2400000.00"))
+                    .monthlyDepreciation(new BigDecimal("200000.00"))
+                    .build()));
+
+    when(repository.findTopByItemIdOrderByCalculatedAtDesc(item3Id))
+        .thenReturn(
+            java.util.Optional.of(
+                DepreciationRecord.builder()
+                    .itemId(item3Id)
+                    .inventoryNumber("INV-003")
+                    .itemName("Enterprise SAN Storage")
+                    .initialValue(new BigDecimal("60000000.00"))
+                    .salvageValue(BigDecimal.ZERO)
+                    .usefulLifeYears(5)
+                    .annualDepreciation(new BigDecimal("12000000.00"))
+                    .monthlyDepreciation(new BigDecimal("1000000.00"))
+                    .build()));
+
+    List<uz.ttpu.inventory.finance.api.ItemReachingFullDepreciationDto> reachingFull =
+        depreciationService.findItemsReachingFullDepreciation(12);
+
+    // Item 1 (0 months remaining) and Item 2 (6 months remaining) should be present;
+    // Item 3 (25 months > 12) and Item 4 (HISOBDAN_CHIQARILGAN) must be excluded!
+    assertThat(reachingFull).hasSize(2);
+
+    assertThat(reachingFull.get(0).itemId()).isEqualTo(item1Id);
+    assertThat(reachingFull.get(0).monthsRemaining()).isEqualTo(0);
+    assertThat(reachingFull.get(0).fullyDepreciated()).isTrue();
+
+    assertThat(reachingFull.get(1).itemId()).isEqualTo(item2Id);
+    assertThat(reachingFull.get(1).monthsRemaining()).isEqualTo(6);
+    assertThat(reachingFull.get(1).fullyDepreciated()).isFalse();
+    assertThat(reachingFull.get(1).monthlyDepreciation()).isEqualByComparingTo("200000.00");
+  }
+
+  @Test
   void sxssfInventoryReportGenerates10000RowsUnder30Seconds() {
     ReportExportLogRepository logRepository = mock(ReportExportLogRepository.class);
     AssetLogisticsApi assetLogisticsApi = mock(AssetLogisticsApi.class);

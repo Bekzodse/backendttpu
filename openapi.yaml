@@ -61,9 +61,6 @@ tags:
   description: "CRUD operations, soft-deactivation (active=false), and Hibernate Envers\
     \ revision history for Buildings, Floors, Departments, Rooms, Employees, and Asset\
     \ Categories (with JSONB custom fields)."
-- name: 16. Finance Write-Off & Disposal
-  description: "Asset disposal, accounting balance sheet write-off, and mandatory\
-    \ B5.6 IT data-wipe certification."
 - name: 10. Repair & Vendor Maintenance Tickets
   description: Repair ticket lifecycle (NEW -> IN_PROGRESS -> IN_SERVICE -> DONE ->
     CLOSED) with event-driven item state transitions to/from TAMIRDA and multi-channel
@@ -72,6 +69,10 @@ tags:
   description: "Transactional Outbox queue with Resilience4j Retry + CircuitBreaker,\
     \ 1C Accounting item export & depreciation ingestion, HEMIS daily sync, E-IMZO\
     \ signatures, and B2.2 Two-Phase 1C XLSX/CSV Import."
+- name: 16. Finance Write-Off & Disposal
+  description: "Asset disposal, accounting balance sheet write-off, mandatory B5.6\
+    \ IT data-wipe certification, and usable parts reclamation back into warehouse\
+    \ stock."
 - name: "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
   description: "University inventory audit sessions (rector's order, commission members,\
     \ room snapshots), QR scanning, reconciliation, real-time STOMP WebSocket progress\
@@ -5372,6 +5373,118 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/finance/write-off/{itemId}/parts:
+    get:
+      tags:
+      - 16. Finance Write-Off & Disposal
+      summary: List all reclaimed usable parts for a written-off asset
+      description: Returns all usable parts officially received back into warehouse
+        stock salvaged from the specified written-off item.
+      operationId: listReclaimedParts
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReclaimedPartDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    post:
+      tags:
+      - 16. Finance Write-Off & Disposal
+      summary: Officially receive a usable part back into warehouse stock
+      description: "Receives a usable part salvaged from a written-off asset back\
+        \ into warehouse stock (OMBORDA), maintaining a database link to the original\
+        \ written-off item's ID."
+      operationId: reclaimPart
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReclaimablePartRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ReclaimedPartDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/finance/write-off/{itemId}/complete:
     post:
       tags:
@@ -5379,7 +5492,8 @@ paths:
       summary: Complete balance sheet write-off for an asset
       description: "Finalizes the asset write-off into HISOBDAN_CHIQARILGAN state.\
         \ If the asset category is computer, laptop, phone, server, or printer, hard-blocks\
-        \ completion unless a data-wipe step is filled out."
+        \ completion unless a data-wipe step is filled out. Allows receiving usable\
+        \ parts back into stock."
       operationId: completeWriteOff
       parameters:
       - name: itemId
@@ -8366,6 +8480,174 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/finance/depreciation/reaching-full-depreciation:
+    get:
+      tags:
+      - 16. Finance & Straight-Line Depreciation
+      summary: Fetch items reaching full depreciation within specified months
+      description: Calculates remaining straight-line depreciation months for active
+        assets and returns items reaching full depreciation within the next N months
+        (default 12).
+      operationId: getItemsReachingFullDepreciation
+      parameters:
+      - name: months
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 12
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemReachingFullDepreciationDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/finance/depreciation/reaching-full:
+    get:
+      tags:
+      - 16. Finance & Straight-Line Depreciation
+      summary: Fetch items reaching full depreciation within specified months
+      description: Calculates remaining straight-line depreciation months for active
+        assets and returns items reaching full depreciation within the next N months
+        (default 12).
+      operationId: getItemsReachingFullDepreciation_1
+      parameters:
+      - name: months
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 12
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemReachingFullDepreciationDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/finance/depreciation/expiring:
+    get:
+      tags:
+      - 16. Finance & Straight-Line Depreciation
+      summary: Fetch items reaching full depreciation within specified months
+      description: Calculates remaining straight-line depreciation months for active
+        assets and returns items reaching full depreciation within the next N months
+        (default 12).
+      operationId: getItemsReachingFullDepreciation_2
+      parameters:
+      - name: months
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 12
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemReachingFullDepreciationDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/finance/depreciation/items/{itemId}:
     get:
       tags:
@@ -9704,6 +9986,9 @@ components:
             type: object
         oneCRefId:
           type: string
+        parentItemId:
+          type: string
+          format: uuid
         createdAt:
           type: string
           format: date-time
@@ -11772,6 +12057,62 @@ components:
           type: array
           items:
             type: string
+    ReclaimablePartRequest:
+      type: object
+      properties:
+        partName:
+          type: string
+        serialNumber:
+          type: string
+        inventoryNumber:
+          type: string
+        estimatedValue:
+          type: number
+        warehouseBuildingId:
+          type: string
+          format: uuid
+        warehouseRoomId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+      required:
+      - partName
+    ReclaimedPartDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        writtenOffItemId:
+          type: string
+          format: uuid
+        reclaimedItemId:
+          type: string
+          format: uuid
+        partName:
+          type: string
+        serialNumber:
+          type: string
+        inventoryNumber:
+          type: string
+        estimatedValue:
+          type: number
+        warehouseBuildingId:
+          type: string
+          format: uuid
+        warehouseRoomId:
+          type: string
+          format: uuid
+        warehouseStatus:
+          type: string
+        reclaimedAt:
+          type: string
+          format: date-time
+        reclaimedByUsername:
+          type: string
+        notes:
+          type: string
     WriteOffCompletionRequest:
       type: object
       properties:
@@ -11783,6 +12124,10 @@ components:
           type: string
         wipeMethod:
           type: string
+        usableParts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReclaimablePartRequest"
       required:
       - documentNumber
     WriteOffResultDto:
@@ -11797,6 +12142,10 @@ components:
           type: string
         dataWipeVerified:
           type: boolean
+        reclaimedParts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReclaimedPartDto"
         completedAt:
           type: string
           format: date-time
@@ -12385,6 +12734,37 @@ components:
           format: uuid
         rectorOrderNumber:
           type: string
+    ItemReachingFullDepreciationDto:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        inventoryNumber:
+          type: string
+        itemName:
+          type: string
+        initialValue:
+          type: number
+        residualValue:
+          type: number
+        salvageValue:
+          type: number
+        usefulLifeYears:
+          type: integer
+          format: int32
+        annualDepreciation:
+          type: number
+        monthlyDepreciation:
+          type: number
+        monthsRemaining:
+          type: integer
+          format: int32
+        projectedFullDepreciationDate:
+          type: string
+          format: date
+        fullyDepreciated:
+          type: boolean
     AuditRecordDto:
       type: object
       properties:
