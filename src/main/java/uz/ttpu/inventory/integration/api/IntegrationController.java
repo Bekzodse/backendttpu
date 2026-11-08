@@ -94,6 +94,17 @@ public class IntegrationController {
     return outboxWorkerService.processPendingOutboxMessages();
   }
 
+  @PostMapping("/outbox/{id}/retry")
+  @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTANT')")
+  @Operation(
+      summary = "Reset and retry a failed or dead-letter outbox message",
+      description =
+          "Resets message status to PENDING, schedules immediate next attempt, and clears last"
+              + " error.")
+  public OutboxMessageDto retryOutboxMessage(@PathVariable UUID id) {
+    return outboxWorkerService.retryOutboxMessage(id);
+  }
+
   @PostMapping("/1c/items")
   @ResponseStatus(HttpStatus.ACCEPTED)
   @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTANT', 'WAREHOUSE_MANAGER')")

@@ -21,21 +21,27 @@ servers:
 security:
 - bearerAuth: []
 tags:
+- name: 11. File & Document Storage (MinIO)
+  description: "Attachment storage metadata, SHA-256 integrity checksum calculation,\
+    \ S3 object key tracking for photos, scanned documents, and signed PDFs with allowed\
+    \ type and size validations."
+- name: 01. Mobile Device Management & Revocation (NFT-3.8)
+  description: "Registers mobile devices upon login and provides administrator endpoints\
+    \ to revoke devices, making their JWTs invalid within 1 minute."
 - name: "12. Multi-Channel Notifications (Email, Telegram, FCM Push)"
   description: "Event-driven and manual notifications dispatched across SMTP Email,\
     \ Telegram Bot API, and Firebase Cloud Messaging (FCM) Push."
 - name: 06. Item Card Audit Trail
   description: "Immutable AOP-captured audit logs (READ, CHANGE, EXPORT) recorded\
     \ in audit_record for item cards and inventory exports."
+- name: 09. Security Checkpoint & Off-Campus Permits
+  description: B3.4 Temporary off-campus permits and campus gate verification endpoint
+    returning 'may leave' or 'may not' on scanned QR IDs.
 - name: 17. Streaming XLSX Inventory Reports (Apache POI SXSSF)
   description: "High-throughput Apache POI SXSSF streaming XLSX report generation\
     \ (10,000+ rows in under 30 seconds) and Thymeleaf + OpenHTMLtoPDF official PDF\
     \ print forms (FT-12.9 Handover Act, FT-9.13 Opis, Comparison Statement, and Final\
     \ Act) with embedded E-IMZO PKCS#7 signature metadata."
-- name: 11. File & Document Storage (MinIO)
-  description: "Attachment storage metadata, SHA-256 integrity checksum calculation,\
-    \ and MinIO object key tracking for signed PDF acts, invoices, and inspection\
-    \ photos."
 - name: 01. Security & Authentication
   description: "Stateless OAuth2 JWT authentication, Argon2id password verification,\
     \ mandatory 2FA TOTP verification, SHA-256 refresh token rotation, 5-attempt account\
@@ -55,14 +61,17 @@ tags:
   description: "CRUD operations, soft-deactivation (active=false), and Hibernate Envers\
     \ revision history for Buildings, Floors, Departments, Rooms, Employees, and Asset\
     \ Categories (with JSONB custom fields)."
+- name: 16. Finance Write-Off & Disposal
+  description: "Asset disposal, accounting balance sheet write-off, and mandatory\
+    \ B5.6 IT data-wipe certification."
 - name: 10. Repair & Vendor Maintenance Tickets
   description: Repair ticket lifecycle (NEW -> IN_PROGRESS -> IN_SERVICE -> DONE ->
     CLOSED) with event-driven item state transitions to/from TAMIRDA and multi-channel
     notifications.
 - name: "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
   description: "Transactional Outbox queue with Resilience4j Retry + CircuitBreaker,\
-    \ 1C Accounting item export & depreciation ingestion, HEMIS daily employee/department\
-    \ sync, and E-IMZO signed PDF verification."
+    \ 1C Accounting item export & depreciation ingestion, HEMIS daily sync, E-IMZO\
+    \ signatures, and B2.2 Two-Phase 1C XLSX/CSV Import."
 - name: "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
   description: "University inventory audit sessions (rector's order, commission members,\
     \ room snapshots), QR scanning, reconciliation, real-time STOMP WebSocket progress\
@@ -75,6 +84,9 @@ tags:
   description: "Multi-step conditional approval workflows for SERVICE_REQUEST, TRANSFER,\
     \ and WRITE_OFF documents with E-IMZO PKCS#7 digital signature or 2FA TOTP step\
     \ verification."
+- name: 08. Offboarding Clearance Checklist (Aylanma varaqa)
+  description: B3.3 Clearance checklist opened upon HEMIS employee dismissal. Hard-blocks
+    closure until 100% of assigned inventory is handed over or transferred.
 - name: 04. Public QR Item Card
   description: "Publicly accessible QR scan endpoints (/a/{id} and /api/v1/a/{id})\
     \ returning ownership information ('TTPU mulki'), inventory number, and custodian\
@@ -1631,6 +1643,62 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/OfflineSyncBatchResponseDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/security/devices/{deviceId}/revoke:
+    post:
+      tags:
+      - 01. Mobile Device Management & Revocation (NFT-3.8)
+      summary: Revoke a mobile device (NFT-3.8)
+      description: Revokes a registered device ID. Any active JWT access token associated
+        with this device becomes invalid within 1 minute.
+      operationId: revokeDevice
+      parameters:
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RevokeDeviceRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserDeviceDto"
         "400":
           description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
           content:
@@ -3794,6 +3862,160 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/movement/permits:
+    get:
+      tags:
+      - 09. Security Checkpoint & Off-Campus Permits
+      summary: List all off-campus permits
+      description: Returns all issued off-campus permits.
+      operationId: listPermits
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OffCampusPermitDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    post:
+      tags:
+      - 09. Security Checkpoint & Off-Campus Permits
+      summary: Issue a temporary off-campus permit
+      description: Creates a new off-campus permit for an inventory item with a validity
+        date range.
+      operationId: createPermit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOffCampusPermitRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OffCampusPermitDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/movement/permits/{id}/revoke:
+    post:
+      tags:
+      - 09. Security Checkpoint & Off-Campus Permits
+      summary: Revoke an off-campus permit
+      description: "Immediately revokes a permit, preventing the item from leaving\
+        \ campus."
+      operationId: revokePermit
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: reason
+        in: query
+        required: false
+        schema:
+          type: string
+          default: Revoked by security administration
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OffCampusPermitDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/inventory/sessions:
     get:
       tags:
@@ -4296,8 +4518,7 @@ paths:
       - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
       summary: Import or validate 1C Pilot Building XLSX export (Prompt 10 / M7)
       description: "Reads pilot building asset data from a Base64-encoded 1C export\
-        \ XLSX file, validates rows, flags mismatches (e.g., MISSING_ROOM, MISSING_EMPLOYEE,\
-        \ MISSING_CATEGORY, INVALID_ROW_DATA), and safely maps valid rows to the reference\
+        \ XLSX file, validates rows, flags mismatches, and maps valid rows to reference\
         \ and asset tables."
       operationId: importPilotBuildingXlsx
       requestBody:
@@ -4463,6 +4684,58 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/outbox/{id}/retry:
+    post:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Reset and retry a failed or dead-letter outbox message
+      description: "Resets message status to PENDING, schedules immediate next attempt,\
+        \ and clears last error."
+      operationId: retryOutboxMessage
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OutboxMessageDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/integrations/outbox/process:
     post:
       tags:
@@ -4553,6 +4826,70 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/hemis/employees/{employeeId}/dismiss:
+    post:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Trigger HEMIS dismissal and open Clearance Checklist (B3.3)
+      description: "Simulates an incoming HEMIS dismissal webhook/event, opening an\
+        \ official Aylanma varaqa checklist."
+      operationId: triggerHemisDismissal
+      parameters:
+      - name: employeeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: orderNumber
+        in: query
+        required: false
+        schema:
+          type: string
+          default: HEMIS-DISMISS-ORDER
+      - name: reason
+        in: query
+        required: false
+        schema:
+          type: string
+          default: Employment contract terminated in HEMIS
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/HemisDismissalResultDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/integrations/eimzo/verify-pdf:
     post:
       tags:
@@ -4575,6 +4912,127 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/EImzoSignatureRecordDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/1c/preview:
+    post:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: "1C File Import Phase 1: Upload & Error Preview (XLSX or CSV)"
+      description: "Parses 1C export file (Base64 JSON), maps columns, validates rows,\
+        \ flags duplicate inventory and serial numbers (in-file & database), checks\
+        \ missing rooms/employees, and returns a staged error preview WITHOUT committing\
+        \ to the database."
+      operationId: previewOneCImport
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OneCImportPreviewRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCImportPreviewResponseDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/1c/preview-upload:
+    post:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: "1C File Import Phase 1: Multipart file upload & preview"
+      description: Direct multipart file upload of 1C XLSX or CSV file for validation
+        and preview without database commitment.
+      operationId: previewOneCImportMultipart
+      parameters:
+      - name: defaultBuildingCode
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: autoCreateMissingCategories
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCImportPreviewResponseDto"
         "400":
           description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
           content:
@@ -4681,6 +5139,123 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/OneCDepreciationRecordDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/1c/confirm/{stagingId}:
+    post:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: "1C File Import Phase 2: Single-Transaction Commit"
+      description: "Commits the validated staging session into asset and reference\
+        \ tables in a SINGLE atomic database transaction. If skipInvalidRows is true,\
+        \ valid items are committed and invalid rows are skipped."
+      operationId: confirmAndCommitOneCImport
+      parameters:
+      - name: stagingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OneCImportConfirmRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCImportCommitResultDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/finance/write-off/{itemId}/complete:
+    post:
+      tags:
+      - 16. Finance Write-Off & Disposal
+      summary: Complete balance sheet write-off for an asset
+      description: "Finalizes the asset write-off into HISOBDAN_CHIQARILGAN state.\
+        \ If the asset category is computer, laptop, phone, server, or printer, hard-blocks\
+        \ completion unless a data-wipe step is filled out."
+      operationId: completeWriteOff
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WriteOffCompletionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WriteOffResultDto"
         "400":
           description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
           content:
@@ -4945,10 +5520,9 @@ paths:
     post:
       tags:
       - 11. File & Document Storage (MinIO)
-      summary: Upload and register a document or attachment
-      description: "Decodes a Base64 file payload, computes its SHA-256 checksum,\
-        \ assigns a MinIO bucket/object key, and persists StoredFileRecord metadata\
-        \ linked to an optional reference entity."
+      summary: Upload and register an attachment (Base64 JSON)
+      description: "Decodes a Base64 file payload, validates MIME type and category\
+        \ file size limits, computes SHA-256, assigns S3 key, and persists to MinIO."
       operationId: uploadFile
       requestBody:
         content:
@@ -4963,6 +5537,188 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/StoredFileDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/files/upload-raw:
+    post:
+      tags:
+      - 11. File & Document Storage (MinIO)
+      summary: Upload attachment via multipart/form-data
+      description: "Direct multipart file upload with content-type and size validation\
+        \ (e.g. photos up to 10MB, documents up to 25MB)."
+      operationId: uploadRawFile
+      parameters:
+      - name: category
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - ITEM_PHOTO
+          - REPAIR_PHOTO
+          - RECEIPT_ATTACHMENT
+          - SIGNED_PDF_ACT
+          - REPORT_EXPORT
+      - name: referenceEntityId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StoredFileDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/clearance/checklists/{id}/close:
+    post:
+      tags:
+      - 08. Offboarding Clearance Checklist (Aylanma varaqa)
+      summary: Close clearance checklist (hard-blocks if assigned items remain)
+      description: Attempts to close the checklist. Strictly throws HTTP 422 ClearanceChecklistBlockedException
+        if any inventory items remain assigned to the employee.
+      operationId: closeChecklist
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CloseClearanceChecklistRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ClearanceChecklistDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/clearance/checklists/open:
+    post:
+      tags:
+      - 08. Offboarding Clearance Checklist (Aylanma varaqa)
+      summary: Open clearance checklist for dismissed employee
+      description: Creates an Aylanma varaqa record in OPEN state and calculates the
+        total assigned inventory items.
+      operationId: openChecklist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenClearanceChecklistRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ClearanceChecklistDto"
         "400":
           description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
           content:
@@ -5387,6 +6143,116 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/assets/{id}/data-wipe:
+    get:
+      tags:
+      - 03. Asset Management & Item State Machine
+      summary: Get latest IT asset data-wipe certification
+      description: Retrieves the most recent data-wipe certification recorded for
+        the asset.
+      operationId: getLatestDataWipe
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DataWipeRecordDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    post:
+      tags:
+      - 03. Asset Management & Item State Machine
+      summary: Record mandatory IT asset data-wipe certification
+      description: "Captures data-wipe details (performer name, method, certificate,\
+        \ notes, timestamp) for computers, laptops, phones, servers, and printers\
+        \ prior to write-off completion."
+      operationId: recordDataWipe
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordDataWipeRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DataWipeRecordDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/workflows/instances/{id}:
     get:
       tags:
@@ -5492,6 +6358,222 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/sync/sessions/{id}/items/cursor:
+    get:
+      tags:
+      - 14. Mobile Offline Sync & Reconciliation
+      summary: Cursor-based pagination for mobile app syncs
+      description: Returns a window of expected items using an opaque base64 cursor
+        token to avoid offsets on mobile network reconnections.
+      operationId: getExpectedItemsCursor
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CursorPageResponseInventoryExpectedItemDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/security/devices:
+    get:
+      tags:
+      - 01. Mobile Device Management & Revocation (NFT-3.8)
+      summary: List registered devices for the current user
+      description: Returns all devices registered by the authenticated user.
+      operationId: listMyDevices
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserDeviceDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/security/checkpoint/{qrId}:
+    get:
+      tags:
+      - 09. Security Checkpoint & Off-Campus Permits
+      summary: Verify if item may leave campus (Gate scan verification)
+      description: "Publicly accessible gate checkpoint scan endpoint. Returns mayLeave:\
+        \ true ('MAY_LEAVE') or mayLeave: false ('MAY_NOT_LEAVE') based on active\
+        \ permit validity."
+      operationId: verifyCheckpoint
+      parameters:
+      - name: qrId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PermitCheckpointResultDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security: []
+  /checkpoint/{qrId}:
+    get:
+      tags:
+      - 09. Security Checkpoint & Off-Campus Permits
+      summary: Verify if item may leave campus (Gate scan verification)
+      description: "Publicly accessible gate checkpoint scan endpoint. Returns mayLeave:\
+        \ true ('MAY_LEAVE') or mayLeave: false ('MAY_NOT_LEAVE') based on active\
+        \ permit validity."
+      operationId: verifyCheckpoint_1
+      parameters:
+      - name: qrId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PermitCheckpointResultDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security: []
   /api/v1/requests/{id}:
     get:
       tags:
@@ -5659,6 +6741,54 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/RepairTicketDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/repairs/replacement-recommended:
+    get:
+      tags:
+      - 10. Repair & Vendor Maintenance Tickets
+      summary: List repair tickets flagged for replacement recommendation (B3.5 50%
+        Rule)
+      description: Returns all repair tickets where the estimated or actual repair
+        cost reaches or exceeds 50% of the asset's residual value.
+      operationId: listReplacementRecommended
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RepairTicketDto"
         "400":
           description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
           content:
@@ -6602,6 +7732,59 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/inventory/sessions/rooms/{roomId}/lock:
+    get:
+      tags:
+      - "13. Inventory Sessions, Live STOMP Dashboard & FT-9.13 Official PDFs"
+      summary: Check whether a room is currently locked due to an active inventory
+        session
+      description: "Returns whether the room is locked for transfers, along with active\
+        \ session code and rector's order number."
+      operationId: getRoomLockStatus
+      parameters:
+      - name: roomId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RoomLockStatusDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/integrations/pilot-migration/template.xlsx:
     get:
       tags:
@@ -6724,6 +7907,149 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/EImzoSignatureRecordDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/1c/sample-template.csv:
+    get:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Download sample 1C Import CSV template
+      description: Returns a sample CSV template for 1C asset initial data import.
+      operationId: downloadSampleCsv
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/1c/preview/{stagingId}:
+    get:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Get staged 1C import preview details
+      description: Returns current validation report and preview rows for the given
+        stagingId.
+      operationId: getStagedPreview
+      parameters:
+      - name: stagingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCImportPreviewResponseDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    delete:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Cancel and discard staged 1C import preview
+      description: Removes the staged session from memory without committing any changes.
+      operationId: cancelStagedPreview
+      parameters:
+      - name: stagingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
         "400":
           description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
           content:
@@ -6877,6 +8203,307 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/StoredFileDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+    delete:
+      tags:
+      - 11. File & Document Storage (MinIO)
+      summary: Delete stored file
+      description: Deletes the object from MinIO S3 bucket and removes its database
+        record.
+      operationId: deleteFile
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/files/{id}/preview:
+    get:
+      tags:
+      - 11. File & Document Storage (MinIO)
+      summary: Preview stored file inline
+      description: Streams file content inline for in-browser PDF or photo viewing.
+      operationId: previewFile
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/files/{id}/download:
+    get:
+      tags:
+      - 11. File & Document Storage (MinIO)
+      summary: Download stored file
+      description: Streams the file binary from MinIO S3 bucket with attachment header
+        and ETag.
+      operationId: downloadFile
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/clearance/checklists:
+    get:
+      tags:
+      - 08. Offboarding Clearance Checklist (Aylanma varaqa)
+      summary: List all clearance checklists
+      description: Returns all employee offboarding checklists.
+      operationId: listChecklists
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClearanceChecklistDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/clearance/checklists/{id}:
+    get:
+      tags:
+      - 08. Offboarding Clearance Checklist (Aylanma varaqa)
+      summary: Get clearance checklist by ID
+      description: Retrieves an offboarding checklist with live remaining items count.
+      operationId: getChecklist
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ClearanceChecklistDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/clearance/checklists/employee/{employeeId}:
+    get:
+      tags:
+      - 08. Offboarding Clearance Checklist (Aylanma varaqa)
+      summary: Get active clearance checklist for an employee
+      description: Returns the active OPEN clearance checklist for the specified employee
+        UUID.
+      operationId: getActiveChecklistForEmployee
+      parameters:
+      - name: employeeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ClearanceChecklistDto"
         "400":
           description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
           content:
@@ -7806,6 +9433,8 @@ components:
           type: number
         residualValue:
           type: number
+        replacementRecommended:
+          type: boolean
         commissionedAt:
           type: string
           format: date-time
@@ -8298,6 +9927,10 @@ components:
           type: string
         duplicateIgnored:
           type: boolean
+        conflict:
+          type: boolean
+        conflictDetails:
+          type: string
         scannedAt:
           type: string
           format: date-time
@@ -8319,10 +9952,54 @@ components:
         duplicateIgnoredCount:
           type: integer
           format: int32
+        conflictCount:
+          type: integer
+          format: int32
         results:
           type: array
           items:
             $ref: "#/components/schemas/OfflineScanActionResultDto"
+    RevokeDeviceRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+    UserDeviceDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        deviceId:
+          type: string
+        deviceName:
+          type: string
+        deviceType:
+          type: string
+        osVersion:
+          type: string
+        appVersion:
+          type: string
+        ipAddress:
+          type: string
+        revoked:
+          type: boolean
+        revokedAt:
+          type: string
+          format: date-time
+        revocationReason:
+          type: string
+        lastLoginAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
     CreateAssetRequestDto:
       type: object
       properties:
@@ -8507,6 +10184,10 @@ components:
           type: number
         actualCost:
           type: number
+        replacementRecommended:
+          type: boolean
+        replacementRecommendationReason:
+          type: string
         expectedReturnAt:
           type: string
           format: date-time
@@ -8969,6 +10650,82 @@ components:
       - documentNumber
       - recipientEmployeeId
       - toRoomId
+    CreateOffCampusPermitRequest:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        qrCode:
+          type: string
+        employeeId:
+          type: string
+          format: uuid
+        employeeFullName:
+          type: string
+        purpose:
+          type: string
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        approvedBy:
+          type: string
+      required:
+      - employeeId
+      - itemId
+      - purpose
+      - validFrom
+      - validUntil
+    OffCampusPermitDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        permitNumber:
+          type: string
+        itemId:
+          type: string
+          format: uuid
+        qrCode:
+          type: string
+        inventoryNumber:
+          type: string
+        itemName:
+          type: string
+        employeeId:
+          type: string
+          format: uuid
+        employeeFullName:
+          type: string
+        purpose:
+          type: string
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - EXPIRED
+          - REVOKED
+          - RETURNED
+        approvedBy:
+          type: string
+        revokedAt:
+          type: string
+          format: date-time
+        revocationReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
     CreateInventorySessionRequest:
       type: object
       properties:
@@ -9446,6 +11203,19 @@ components:
         syncedAt:
           type: string
           format: date-time
+    HemisDismissalResultDto:
+      type: object
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        checklistNumber:
+          type: string
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
     VerifySignedPdfRequest:
       type: object
       properties:
@@ -9515,6 +11285,125 @@ components:
         createdAt:
           type: string
           format: date-time
+    OneCImportPreviewRequest:
+      type: object
+      properties:
+        fileContentBase64:
+          type: string
+        fileName:
+          type: string
+        defaultBuildingCode:
+          type: string
+        autoCreateMissingCategories:
+          type: boolean
+      required:
+      - fileContentBase64
+    OneCImportPreviewResponseDto:
+      type: object
+      properties:
+        stagingId:
+          type: string
+          format: uuid
+        fileName:
+          type: string
+        fileType:
+          type: string
+        totalRows:
+          type: integer
+          format: int32
+        validRowsCount:
+          type: integer
+          format: int32
+        errorRowsCount:
+          type: integer
+          format: int32
+        warningRowsCount:
+          type: integer
+          format: int32
+        canCommit:
+          type: boolean
+        duplicateInventoryNumbers:
+          type: array
+          items:
+            type: string
+        duplicateSerialNumbers:
+          type: array
+          items:
+            type: string
+        missingRooms:
+          type: array
+          items:
+            type: string
+        missingEmployees:
+          type: array
+          items:
+            type: string
+        missingCategories:
+          type: array
+          items:
+            type: string
+        missingBuildings:
+          type: array
+          items:
+            type: string
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/OneCImportRowPreviewDto"
+        stagedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+    OneCImportRowPreviewDto:
+      type: object
+      properties:
+        rowNumber:
+          type: integer
+          format: int32
+        inventoryNumber:
+          type: string
+        assetName:
+          type: string
+        serialNumber:
+          type: string
+        model:
+          type: string
+        categoryCode:
+          type: string
+        categoryName:
+          type: string
+        buildingCode:
+          type: string
+        floorNumber:
+          type: string
+        roomNumber:
+          type: string
+        departmentCode:
+          type: string
+        employeeCode:
+          type: string
+        employeeFullName:
+          type: string
+        purchasePrice:
+          type: number
+        residualValue:
+          type: number
+        oneCRefId:
+          type: string
+        valid:
+          type: boolean
+        duplicate:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
     OneCNewItemExportRequest:
       type: object
       properties:
@@ -9569,6 +11458,69 @@ components:
       - oneCRefId
       - periodDate
       - residualValue
+    OneCImportConfirmRequest:
+      type: object
+      properties:
+        skipInvalidRows:
+          type: boolean
+        autoCreateMissingCategories:
+          type: boolean
+    OneCImportCommitResultDto:
+      type: object
+      properties:
+        stagingId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        totalProcessed:
+          type: integer
+          format: int32
+        importedCount:
+          type: integer
+          format: int32
+        skippedCount:
+          type: integer
+          format: int32
+        committedAt:
+          type: string
+          format: date-time
+        importedInventoryNumbers:
+          type: array
+          items:
+            type: string
+        errorMessages:
+          type: array
+          items:
+            type: string
+    WriteOffCompletionRequest:
+      type: object
+      properties:
+        documentNumber:
+          type: string
+        reason:
+          type: string
+        performerName:
+          type: string
+        wipeMethod:
+          type: string
+      required:
+      - documentNumber
+    WriteOffResultDto:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        inventoryNumber:
+          type: string
+        documentNumber:
+          type: string
+        dataWipeVerified:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
     DepreciationForecastDto:
       type: object
       properties:
@@ -9715,6 +11667,79 @@ components:
         updatedAt:
           type: string
           format: date-time
+    CloseClearanceChecklistRequest:
+      type: object
+      properties:
+        closedByEmployeeId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+    ClearanceChecklistDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        checklistNumber:
+          type: string
+        employeeId:
+          type: string
+          format: uuid
+        employeeCode:
+          type: string
+        employeeFullName:
+          type: string
+        departmentName:
+          type: string
+        status:
+          type: string
+          enum:
+          - OPEN
+          - CLOSED
+          - REJECTED
+        dismissalOrderNumber:
+          type: string
+        dismissalReason:
+          type: string
+        totalAssignedItems:
+          type: integer
+          format: int32
+        remainingItemsCount:
+          type: integer
+          format: int32
+        unreturnedItemSummaries:
+          type: array
+          items:
+            type: string
+        openedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+        closedByEmployeeId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    OpenClearanceChecklistRequest:
+      type: object
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        dismissalOrderNumber:
+          type: string
+        dismissalReason:
+          type: string
+        notes:
+          type: string
+      required:
+      - employeeId
     RefreshTokenRequest:
       type: object
       properties:
@@ -9787,6 +11812,12 @@ components:
         totpCode:
           type: string
           pattern: "^\\d{6}$"
+        deviceId:
+          type: string
+        deviceName:
+          type: string
+        deviceType:
+          type: string
       required:
       - password
       - totpCode
@@ -9821,6 +11852,52 @@ components:
       required:
       - documentReference
       - event
+    RecordDataWipeRequest:
+      type: object
+      properties:
+        performedByName:
+          type: string
+        performedByEmployeeId:
+          type: string
+          format: uuid
+        wipeMethod:
+          type: string
+        certificateNumber:
+          type: string
+        notes:
+          type: string
+        wipedAt:
+          type: string
+          format: date-time
+      required:
+      - performedByName
+      - wipeMethod
+    DataWipeRecordDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        performedByName:
+          type: string
+        performedByEmployeeId:
+          type: string
+          format: uuid
+        wipeMethod:
+          type: string
+        certificateNumber:
+          type: string
+        notes:
+          type: string
+        wipedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
     OfflineSessionPackageDto:
       type: object
       properties:
@@ -9858,6 +11935,51 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/InventoryExpectedItemDto"
+    CursorPageResponseInventoryExpectedItemDto:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryExpectedItemDto"
+        nextCursor:
+          type: string
+        hasMore:
+          type: boolean
+        limit:
+          type: integer
+          format: int32
+    PermitCheckpointResultDto:
+      type: object
+      properties:
+        mayLeave:
+          type: boolean
+        decision:
+          type: string
+        message:
+          type: string
+        qrId:
+          type: string
+        itemId:
+          type: string
+          format: uuid
+        inventoryNumber:
+          type: string
+        itemName:
+          type: string
+        permitNumber:
+          type: string
+        issuedToEmployee:
+          type: string
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        checkedAt:
+          type: string
+          format: date-time
     ReportExportLogDto:
       type: object
       properties:
@@ -9967,6 +12089,21 @@ components:
           type: string
         snapshot:
           $ref: "#/components/schemas/BuildingDto"
+    RoomLockStatusDto:
+      type: object
+      properties:
+        roomId:
+          type: string
+          format: uuid
+        locked:
+          type: boolean
+        sessionCode:
+          type: string
+        sessionId:
+          type: string
+          format: uuid
+        rectorOrderNumber:
+          type: string
     AuditRecordDto:
       type: object
       properties:

@@ -21,6 +21,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uz.ttpu.inventory.asset.api.ItemStateChangedEvent;
 import uz.ttpu.inventory.common.domain.ResourceNotFoundException;
 import uz.ttpu.inventory.integration.api.EnqueueOutboxRequest;
 import uz.ttpu.inventory.integration.api.OutboxIntegrationApi;
@@ -145,6 +146,58 @@ public class OutboxWorkerService implements OutboxIntegrationApi {
             "POST",
             payload,
             5));
+  }
+
+  @EventListener
+  @Transactional
+  public void onItemStateChanged(ItemStateChangedEvent event) {
+    Map<String, Object> payload = new LinkedHashMap<>();
+    payload.put("itemId", event.itemId().toString());
+    payload.put("inventoryNumber", event.inventoryNumber());
+    payload.put("fromState", event.fromStateName());
+    payload.put("toState", event.toStateName());
+    payload.put("event", event.eventName());
+    payload.put("documentType", event.documentType());
+    payload.put("documentRef", event.documentRef());
+    payload.put(
+        "occurredAt",
+        event.occurredAt() != null ? event.occurredAt().toString() : Instant.now().toString());
+
+    String dedupKey =
+        "1C-ITEM-STATE-"
+            + event.itemId()
+            + "-"
+            + (event.toStateName() != null ? event.toStateName() : "STATE")
+            + "-"
+            + (event.occurredAt() != null
+                ? event.occurredAt().toEpochMilli()
+                : System.currentTimeMillis());
+
+    enqueueOutboxMessage(
+        new EnqueueOutboxRequest(
+            dedupKey,
+            ExternalSystemType.ONE_C,
+            "Item",
+            event.itemId(),
+            "ITEM_STATE_CHANGED",
+            "https://1c.ttpu.uz/api/v1/items/state",
+            "POST",
+            payload,
+            5));
+  }
+
+  @Override
+  @Transactional
+  public OutboxMessageDto retryOutboxMessage(UUID id) {
+    OutboxMessage message =
+        outboxRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("OutboxMessage", id));
+
+    message.setStatus(OutboxStatus.PENDING);
+    message.setNextAttemptAt(Instant.now());
+    message.setLastError(null);
+    return integrationMapper.toDto(outboxRepository.saveAndFlush(message));
   }
 
   @Scheduled(fixedDelayString = "${app.integration.outbox.poll-interval-ms:15000}")

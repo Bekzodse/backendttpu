@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import uz.ttpu.inventory.asset.api.AssetLogisticsApi;
 import uz.ttpu.inventory.asset.api.ItemDto;
+import uz.ttpu.inventory.asset.api.ItemStateChangedEvent;
+import uz.ttpu.inventory.asset.domain.ItemEvent;
 import uz.ttpu.inventory.asset.domain.ItemState;
 import uz.ttpu.inventory.integration.api.EImzoSignatureRecordDto;
 import uz.ttpu.inventory.integration.api.EnqueueOutboxRequest;
@@ -79,6 +81,13 @@ class OutboxWorkerAndResilienceTest {
               return storedMessages.stream()
                   .filter(m -> m.getIdempotencyKey().equals(key))
                   .findFirst();
+            });
+
+    when(outboxRepository.findById(any(UUID.class)))
+        .thenAnswer(
+            inv -> {
+              UUID id = inv.getArgument(0);
+              return storedMessages.stream().filter(m -> m.getId().equals(id)).findFirst();
             });
 
     when(outboxRepository.saveAndFlush(any(OutboxMessage.class)))
@@ -346,5 +355,60 @@ class OutboxWorkerAndResilienceTest {
     assertThat(sigRecord.signerFullName()).isEqualTo("KARIMOV SARDOR RUSTAMOVICH");
     assertThat(sigRecord.certificateSerialNumber()).isEqualTo("EIMZO-CERT-778899");
     assertThat(sigRecord.pdfSha256Hash()).hasSize(64);
+  }
+
+  @Test
+  void itemStateChangedEvent_enqueuesOutboxMessageTo1C() {
+    UUID itemId = UUID.randomUUID();
+    ItemStateChangedEvent event =
+        new ItemStateChangedEvent(
+            itemId,
+            "INV-2026-888",
+            ItemState.OMBORDA,
+            ItemState.FOYDALANISHDA,
+            ItemEvent.PUT_INTO_USE,
+            "HANDOVER_ACT",
+            "DOC-12345",
+            Instant.now());
+
+    outboxWorkerService.onItemStateChanged(event);
+
+    assertThat(storedMessages).hasSize(1);
+    OutboxMessage msg = storedMessages.get(0);
+    assertThat(msg.getTargetSystem()).isEqualTo(ExternalSystemType.ONE_C);
+    assertThat(msg.getEventType()).isEqualTo("ITEM_STATE_CHANGED");
+    assertThat(msg.getAggregateType()).isEqualTo("Item");
+    assertThat(msg.getAggregateId()).isEqualTo(itemId);
+    assertThat(msg.getPayload())
+        .containsEntry("inventoryNumber", "INV-2026-888")
+        .containsEntry("fromState", "OMBORDA")
+        .containsEntry("toState", "FOYDALANISHDA");
+  }
+
+  @Test
+  void retryOutboxMessage_resetsFailedMessageToPending() {
+    OutboxMessage msg =
+        OutboxMessage.builder()
+            .idempotencyKey("KEY-DEAD")
+            .targetSystem(ExternalSystemType.ONE_C)
+            .aggregateType("Item")
+            .aggregateId(UUID.randomUUID())
+            .eventType("ITEM_EXPORT")
+            .endpointUrl("https://1c.ttpu.uz")
+            .httpMethod("POST")
+            .status(OutboxStatus.DEAD_LETTER)
+            .attemptCount(5)
+            .maxAttempts(5)
+            .lastError("Timeout connecting to 1C")
+            .nextAttemptAt(Instant.now().minusSeconds(100))
+            .build();
+    msg.setId(UUID.randomUUID());
+    storedMessages.add(msg);
+
+    OutboxMessageDto retried = outboxWorkerService.retryOutboxMessage(msg.getId());
+
+    assertThat(retried.status()).isEqualTo(OutboxStatus.PENDING);
+    assertThat(msg.getStatus()).isEqualTo(OutboxStatus.PENDING);
+    assertThat(msg.getLastError()).isNull();
   }
 }

@@ -13,4 +13,17 @@ public record ItemStateChangedEvent(
     ItemEvent event,
     String documentType,
     String documentRef,
-    Instant occurredAt) {}
+    Instant occurredAt) {
+
+  public String fromStateName() {
+    return fromState != null ? fromState.name() : null;
+  }
+
+  public String toStateName() {
+    return toState != null ? toState.name() : null;
+  }
+
+  public String eventName() {
+    return event != null ? event.name() : null;
+  }
+}
