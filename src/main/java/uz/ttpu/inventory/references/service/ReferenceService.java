@@ -643,6 +643,15 @@ public class ReferenceService implements ReferenceSyncApi {
 
   @Override
   @Transactional(readOnly = true)
+  public Optional<EmployeeDto> findEmployeeById(UUID id) {
+    if (id == null) {
+      return Optional.empty();
+    }
+    return employeeRepository.findById(id).map(referenceMapper::toEmployeeDto);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
   public Optional<CategoryDto> findCategoryByCode(String code) {
     if (code == null || code.isBlank()) {
       return Optional.empty();

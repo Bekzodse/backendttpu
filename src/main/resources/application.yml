@@ -59,6 +59,10 @@ app:
     outbox:
       poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:15000}
       batch-size: ${OUTBOX_BATCH_SIZE:50}
+    hemis:
+      sync-cron: ${HEMIS_SYNC_CRON:0 0 2 * * *}
+    1c:
+      reconciliation-cron: ${ONE_C_RECONCILIATION_CRON:0 0 3 * * *}
     resilience:
       retry-max-attempts: 3
       retry-wait-ms: 100

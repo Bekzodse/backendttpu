@@ -18,4 +18,25 @@ public record EmployeeDto(
     String oneCId,
     boolean active,
     Instant createdAt,
-    Instant updatedAt) {}
+    Instant updatedAt) {
+
+  public String fullName() {
+    StringBuilder sb = new StringBuilder();
+    if (lastName != null && !lastName.isBlank()) {
+      sb.append(lastName.trim());
+    }
+    if (firstName != null && !firstName.isBlank()) {
+      if (!sb.isEmpty()) {
+        sb.append(" ");
+      }
+      sb.append(firstName.trim());
+    }
+    if (middleName != null && !middleName.isBlank()) {
+      if (!sb.isEmpty()) {
+        sb.append(" ");
+      }
+      sb.append(middleName.trim());
+    }
+    return sb.toString();
+  }
+}

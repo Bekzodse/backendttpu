@@ -4942,6 +4942,151 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/eimzo/verify-pdf-file:
+    post:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Verify a signed PDF multipart file via E-IMZO and record signer details
+      description: "Accepts a signed PDF file directly as multipart/form-data, computes\
+        \ SHA-256, verifies PKCS#7 signature via E-IMZO, and persists signer details."
+      operationId: verifySignedPdfFile
+      parameters:
+      - name: documentType
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ACT
+      - name: documentId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: documentNumber
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: signerPinfl
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: signerTin
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: signerFullName
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: signerOrganization
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: certificateSerialNumber
+        in: query
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EImzoSignatureRecordDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/1c/reconcile:
+    post:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Trigger full reconciliation report against 1C Accounting
+      description: "Compares digital inventory assets against 1C registry across inventory\
+        \ number, financial residual value, and responsible custodian, returning any\
+        \ detected mismatches."
+      operationId: triggerOneCReconciliation
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCReconciliationReportDto"
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
   /api/v1/integrations/1c/preview:
     post:
       tags:
@@ -8001,6 +8146,51 @@ paths:
               schema:
                 type: string
                 format: byte
+        "400":
+          description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized (ERR_AUTH_FAILED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden / Insufficient Scoped Permission (ERR_ACCESS_DENIED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Resource Not Found (ERR_RESOURCE_NOT_FOUND)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: State Conflict / Duplicate Serial Number (ERR_STATE_CONFLICT)
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+  /api/v1/integrations/1c/reconciliation/latest:
+    get:
+      tags:
+      - "15. External Integrations: Transactional Outbox, 1C, HEMIS & E-IMZO"
+      summary: Get latest 1C full reconciliation report
+      description: Retrieves the most recent full reconciliation report between digital
+        inventory and 1C.
+      operationId: getLatestOneCReconciliation
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OneCReconciliationReportDto"
         "400":
           description: Bad Request / Validation Error (ERR_VALIDATION_FAILED / ERR_BAD_REQUEST)
           content:
@@ -11334,6 +11524,46 @@ components:
         createdAt:
           type: string
           format: date-time
+    OneCReconciliationMismatchDto:
+      type: object
+      properties:
+        inventoryNumber:
+          type: string
+        mismatchType:
+          type: string
+        localValue:
+          type: string
+        oneCValue:
+          type: string
+        details:
+          type: string
+    OneCReconciliationReportDto:
+      type: object
+      properties:
+        reconciliationId:
+          type: string
+          format: uuid
+        executedAt:
+          type: string
+          format: date-time
+        totalLocalItems:
+          type: integer
+          format: int32
+        totalOneCItems:
+          type: integer
+          format: int32
+        matchedCount:
+          type: integer
+          format: int32
+        mismatchCount:
+          type: integer
+          format: int32
+        mismatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/OneCReconciliationMismatchDto"
+        status:
+          type: string
     OneCImportPreviewRequest:
       type: object
       properties:

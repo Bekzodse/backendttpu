@@ -28,6 +28,7 @@ import uz.ttpu.inventory.integration.domain.OutboxStatus;
 import uz.ttpu.inventory.integration.service.EImzoService;
 import uz.ttpu.inventory.integration.service.HemisSyncService;
 import uz.ttpu.inventory.integration.service.OneCImportService;
+import uz.ttpu.inventory.integration.service.OneCReconciliationService;
 import uz.ttpu.inventory.integration.service.OutboxWorkerService;
 import uz.ttpu.inventory.integration.service.PilotDataMigrationService;
 
@@ -48,6 +49,7 @@ public class IntegrationController {
   private final EImzoService eImzoService;
   private final PilotDataMigrationService pilotDataMigrationService;
   private final OneCImportService oneCImportService;
+  private final OneCReconciliationService oneCReconciliationService;
 
   @GetMapping("/outbox")
   @PreAuthorize("isAuthenticated()")
@@ -227,6 +229,31 @@ public class IntegrationController {
         .body(csv);
   }
 
+  @PostMapping("/1c/reconcile")
+  @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTANT')")
+  @Operation(
+      summary = "Trigger full reconciliation report against 1C Accounting",
+      description =
+          "Compares digital inventory assets against 1C registry across inventory number,"
+              + " financial residual value, and responsible custodian, returning any detected"
+              + " mismatches.")
+  public OneCReconciliationReportDto triggerOneCReconciliation() {
+    return oneCReconciliationService.reconcileWith1C();
+  }
+
+  @GetMapping("/1c/reconciliation/latest")
+  @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTANT')")
+  @Operation(
+      summary = "Get latest 1C full reconciliation report",
+      description =
+          "Retrieves the most recent full reconciliation report between digital inventory and 1C.")
+  public ResponseEntity<OneCReconciliationReportDto> getLatestOneCReconciliation() {
+    return oneCReconciliationService
+        .getLatestReport()
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.noContent().build());
+  }
+
   // -------------------------------------------------------------------------
   // HEMIS & E-IMZO
   // -------------------------------------------------------------------------
@@ -269,6 +296,39 @@ public class IntegrationController {
   public EImzoSignatureRecordDto verifySignedPdf(
       @Valid @RequestBody VerifySignedPdfRequest request) {
     return eImzoService.verifyAndRecordSignedPdf(request);
+  }
+
+  @PostMapping(value = "/eimzo/verify-pdf-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @ResponseStatus(HttpStatus.CREATED)
+  @PreAuthorize("isAuthenticated()")
+  @Operation(
+      summary = "Verify a signed PDF multipart file via E-IMZO and record signer details",
+      description =
+          "Accepts a signed PDF file directly as multipart/form-data, computes SHA-256, verifies"
+              + " PKCS#7 signature via E-IMZO, and persists signer details.")
+  public EImzoSignatureRecordDto verifySignedPdfFile(
+      @RequestParam("file") MultipartFile file,
+      @RequestParam(value = "documentType", required = false, defaultValue = "ACT")
+          String documentType,
+      @RequestParam(value = "documentId", required = false) UUID documentId,
+      @RequestParam(value = "documentNumber", required = false) String documentNumber,
+      @RequestParam(value = "signerPinfl", required = false) String signerPinfl,
+      @RequestParam(value = "signerTin", required = false) String signerTin,
+      @RequestParam(value = "signerFullName", required = false) String signerFullName,
+      @RequestParam(value = "signerOrganization", required = false) String signerOrganization,
+      @RequestParam(value = "certificateSerialNumber", required = false)
+          String certificateSerialNumber)
+      throws IOException {
+    return eImzoService.verifyAndRecordSignedPdfBlob(
+        documentType,
+        documentId,
+        documentNumber,
+        file.getBytes(),
+        signerPinfl,
+        signerTin,
+        signerFullName,
+        signerOrganization,
+        certificateSerialNumber);
   }
 
   @GetMapping("/eimzo/documents/{documentId}/signatures")

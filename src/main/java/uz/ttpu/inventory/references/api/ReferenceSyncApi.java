@@ -28,6 +28,8 @@ public interface ReferenceSyncApi {
 
   Optional<EmployeeDto> findEmployeeByCodeOrFullName(String employeeCode, String fullName);
 
+  Optional<EmployeeDto> findEmployeeById(UUID id);
+
   Optional<CategoryDto> findCategoryByCode(String code);
 
   Optional<CategoryDto> findCategoryById(UUID id);
