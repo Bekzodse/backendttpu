@@ -24,6 +24,7 @@ import uz.ttpu.inventory.common.domain.ResourceNotFoundException;
 import uz.ttpu.inventory.inventory.api.CreateInventorySessionRequest;
 import uz.ttpu.inventory.inventory.api.CursorPageResponse;
 import uz.ttpu.inventory.inventory.api.InventoryExpectedItemDto;
+import uz.ttpu.inventory.inventory.api.InventoryLockApi;
 import uz.ttpu.inventory.inventory.api.InventoryProgressDashboardDto;
 import uz.ttpu.inventory.inventory.api.InventoryReconciliationReportDto;
 import uz.ttpu.inventory.inventory.api.InventorySessionDto;
@@ -34,6 +35,7 @@ import uz.ttpu.inventory.inventory.api.OfflineSyncBatchRequest;
 import uz.ttpu.inventory.inventory.api.OfflineSyncBatchResponseDto;
 import uz.ttpu.inventory.inventory.api.ReconciledItemDto;
 import uz.ttpu.inventory.inventory.api.RoomExpectedItemsDto;
+import uz.ttpu.inventory.inventory.api.RoomLockStatusDto;
 import uz.ttpu.inventory.inventory.api.RoomProgressDto;
 import uz.ttpu.inventory.inventory.api.ScanInventoryItemRequest;
 import uz.ttpu.inventory.inventory.domain.InventoryExpectedItem;
@@ -50,7 +52,7 @@ import uz.ttpu.inventory.inventory.repository.InventorySessionRoomRepository;
 
 @Service
 @RequiredArgsConstructor
-public class InventoryService {
+public class InventoryService implements InventoryLockApi {
 
   public static final String TOPIC_SESSION_PROGRESS_PREFIX = "/topic/inventory/sessions/";
   public static final String TOPIC_SESSION_PROGRESS_SUFFIX = "/progress";
@@ -199,8 +201,10 @@ public class InventoryService {
     }
 
     List<OfflineScanActionResultDto> results = new ArrayList<>();
+    List<InventoryScanAction> appliedInCurrentBatch = new ArrayList<>();
     int appliedCount = 0;
     int duplicateIgnoredCount = 0;
+    int conflictCount = 0;
     UUID primarySessionId = request.sessionId();
 
     for (OfflineScanActionRequest action : request.actions()) {
@@ -218,6 +222,9 @@ public class InventoryService {
       if (existingAction.isPresent()) {
         InventoryScanAction dup = existingAction.get();
         duplicateIgnoredCount++;
+        if (dup.isConflict()) {
+          conflictCount++;
+        }
         results.add(
             new OfflineScanActionResultDto(
                 dup.getClientActionId(),
@@ -231,6 +238,8 @@ public class InventoryService {
                 dup.getReconciliationCategory(),
                 dup.getReconciliationCategory().getLabel(),
                 true,
+                dup.isConflict(),
+                dup.getConflictDetails(),
                 dup.getScannedAt()));
         continue;
       }
@@ -286,6 +295,40 @@ public class InventoryService {
         }
       }
 
+      // Conflict Resolution: If the same item is scanned by two different commission members in two
+      // different rooms during the same session
+      Optional<InventoryScanAction> conflictingScanOpt =
+          findPriorConflictingScan(
+              targetSessionId,
+              resolvedItemId,
+              resolvedQr,
+              resolvedInvNum,
+              action.scannedByEmployeeId(),
+              action.scannedRoomId(),
+              appliedInCurrentBatch);
+
+      boolean isConflict = conflictingScanOpt.isPresent();
+      String conflictDetails = null;
+      if (isConflict) {
+        InventoryScanAction prior = conflictingScanOpt.get();
+        conflictCount++;
+        String itemIdentifier =
+            resolvedInvNum != null && !resolvedInvNum.isBlank()
+                ? resolvedInvNum
+                : (resolvedQr != null && !resolvedQr.isBlank()
+                    ? resolvedQr
+                    : String.valueOf(resolvedItemId));
+        conflictDetails =
+            String.format(
+                "Conflict detected: Item '%s' was scanned by commission member %s in room %s,"
+                    + " but scanned by commission member %s in room %s during the same session.",
+                itemIdentifier,
+                prior.getScannedByEmployeeId(),
+                prior.getScannedRoomId(),
+                action.scannedByEmployeeId(),
+                action.scannedRoomId());
+      }
+
       InventoryScanAction scanRecord =
           InventoryScanAction.builder()
               .clientActionId(action.clientActionId())
@@ -300,9 +343,12 @@ public class InventoryService {
               .scannedAt(scannedAt)
               .reconciliationCategory(category)
               .notes(action.notes())
+              .conflict(isConflict)
+              .conflictDetails(conflictDetails)
               .build();
 
       InventoryScanAction savedScan = scanActionRepository.saveAndFlush(scanRecord);
+      appliedInCurrentBatch.add(savedScan);
       appliedCount++;
 
       results.add(
@@ -318,6 +364,8 @@ public class InventoryService {
               savedScan.getReconciliationCategory(),
               savedScan.getReconciliationCategory().getLabel(),
               false,
+              isConflict,
+              conflictDetails,
               savedScan.getScannedAt()));
     }
 
@@ -338,6 +386,7 @@ public class InventoryService {
         request.actions().size(),
         appliedCount,
         duplicateIgnoredCount,
+        conflictCount,
         results);
   }
 
@@ -781,5 +830,125 @@ public class InventoryService {
     return sessionRepository
         .findById(sessionId)
         .orElseThrow(() -> new ResourceNotFoundException("InventorySession", sessionId));
+  }
+
+  // =========================================================================
+  // InventoryLockApi Implementation (Movement transfer blocking & visual flag)
+  // =========================================================================
+
+  @Override
+  @Transactional(readOnly = true)
+  public boolean isRoomLockedForInventory(UUID roomId) {
+    if (roomId == null) {
+      return false;
+    }
+    return !sessionRoomRepository
+        .findActiveByRoomIdAndStatus(roomId, InventorySessionStatus.IN_PROGRESS)
+        .isEmpty();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Optional<String> findActiveSessionCodeForRoom(UUID roomId) {
+    if (roomId == null) {
+      return Optional.empty();
+    }
+    List<InventorySessionRoom> rooms =
+        sessionRoomRepository.findActiveByRoomIdAndStatus(
+            roomId, InventorySessionStatus.IN_PROGRESS);
+    if (rooms.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(rooms.get(0).getSession().getSessionCode());
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public RoomLockStatusDto getRoomLockStatus(UUID roomId) {
+    if (roomId == null) {
+      return new RoomLockStatusDto(null, false, null, null, null);
+    }
+    List<InventorySessionRoom> rooms =
+        sessionRoomRepository.findActiveByRoomIdAndStatus(
+            roomId, InventorySessionStatus.IN_PROGRESS);
+    if (rooms.isEmpty()) {
+      return new RoomLockStatusDto(roomId, false, null, null, null);
+    }
+    InventorySession session = rooms.get(0).getSession();
+    return new RoomLockStatusDto(
+        roomId, true, session.getSessionCode(), session.getId(), session.getRectorOrderNumber());
+  }
+
+  // =========================================================================
+  // Offline Sync Conflict Resolution Helper Methods
+  // =========================================================================
+
+  private Optional<InventoryScanAction> findPriorConflictingScan(
+      UUID sessionId,
+      UUID itemId,
+      String qrCode,
+      String inventoryNumber,
+      UUID currentEmployeeId,
+      UUID currentRoomId,
+      List<InventoryScanAction> currentBatchScans) {
+    if (currentEmployeeId == null || currentRoomId == null) {
+      return Optional.empty();
+    }
+
+    // 1. Check in-flight batch scans first
+    for (InventoryScanAction prior : currentBatchScans) {
+      if (isMatchingItem(prior, itemId, qrCode, inventoryNumber)) {
+        if (!currentEmployeeId.equals(prior.getScannedByEmployeeId())
+            && !currentRoomId.equals(prior.getScannedRoomId())) {
+          return Optional.of(prior);
+        }
+      }
+    }
+
+    // 2. Check previously persisted scans in DB
+    List<InventoryScanAction> dbScans = new ArrayList<>();
+    if (itemId != null) {
+      dbScans.addAll(scanActionRepository.findAllBySessionIdAndItemId(sessionId, itemId));
+    }
+    if (qrCode != null && !qrCode.isBlank()) {
+      dbScans.addAll(
+          scanActionRepository.findAllBySessionIdAndQrCodeIgnoreCase(sessionId, qrCode.trim()));
+    }
+    if (inventoryNumber != null && !inventoryNumber.isBlank()) {
+      dbScans.addAll(
+          scanActionRepository.findAllBySessionIdAndInventoryNumberIgnoreCase(
+              sessionId, inventoryNumber.trim()));
+    }
+
+    for (InventoryScanAction prior : dbScans) {
+      if (isMatchingItem(prior, itemId, qrCode, inventoryNumber)) {
+        if (!currentEmployeeId.equals(prior.getScannedByEmployeeId())
+            && !currentRoomId.equals(prior.getScannedRoomId())) {
+          return Optional.of(prior);
+        }
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  private boolean isMatchingItem(
+      InventoryScanAction action, UUID itemId, String qrCode, String inventoryNumber) {
+    if (itemId != null && action.getItemId() != null && itemId.equals(action.getItemId())) {
+      return true;
+    }
+    if (qrCode != null
+        && !qrCode.isBlank()
+        && action.getQrCode() != null
+        && qrCode.trim().equalsIgnoreCase(action.getQrCode().trim())) {
+      return true;
+    }
+    if (inventoryNumber != null
+        && !inventoryNumber.isBlank()
+        && action.getInventoryNumber() != null
+        && inventoryNumber.trim().equalsIgnoreCase(action.getInventoryNumber().trim())) {
+      return true;
+    }
+    return false;
   }
 }

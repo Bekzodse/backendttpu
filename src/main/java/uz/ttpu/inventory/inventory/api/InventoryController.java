@@ -110,6 +110,17 @@ public class InventoryController {
     return inventoryService.getRoomExpectedList(sessionId, roomId);
   }
 
+  @GetMapping("/rooms/{roomId}/lock")
+  @PreAuthorize("isAuthenticated()")
+  @Operation(
+      summary = "Check whether a room is currently locked due to an active inventory session",
+      description =
+          "Returns whether the room is locked for transfers, along with active session code and"
+              + " rector's order number.")
+  public RoomLockStatusDto getRoomLockStatus(@PathVariable UUID roomId) {
+    return inventoryService.getRoomLockStatus(roomId);
+  }
+
   @PostMapping("/{sessionId}/scan")
   @PreAuthorize(
       "hasAnyRole('ADMIN', 'COMMISSION_MEMBER', 'INVENTORY_COMMISSION', 'WAREHOUSE_MANAGER',"

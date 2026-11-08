@@ -90,6 +90,12 @@ public enum ErrorCode {
       "Universitet hududidan olib chiqish ruxsatnomasi mavjud emas yoki muddati tugagan.",
       "Пропуск на вынос имущества отсутствует или просрочен.",
       "Off-campus permit is missing, invalid, or expired."),
+  ERR_ROOM_LOCKED_FOR_INVENTORY(
+      HttpStatus.CONFLICT,
+      "Room Locked for Inventory",
+      "Xona inventarizatsiya jarayonida bo'lgani sababli aktivlar ko'chirilishi taqiqlangan.",
+      "Перемещение активов заблокировано: в помещении проводится инвентаризация.",
+      "Movement blocked: the room is currently locked for an active inventory session."),
   ERR_INTERNAL_SERVER_ERROR(
       HttpStatus.INTERNAL_SERVER_ERROR,
       "Internal Server Error",

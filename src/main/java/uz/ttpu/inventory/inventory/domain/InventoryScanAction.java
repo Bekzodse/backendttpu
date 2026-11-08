@@ -70,4 +70,11 @@ public class InventoryScanAction extends BaseEntity {
 
   @Column(name = "notes", columnDefinition = "TEXT")
   private String notes;
+
+  @Builder.Default
+  @Column(name = "conflict", nullable = false)
+  private boolean conflict = false;
+
+  @Column(name = "conflict_details", columnDefinition = "TEXT")
+  private String conflictDetails;
 }

@@ -3,13 +3,16 @@ package uz.ttpu.inventory.movement.service;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.ttpu.inventory.asset.api.AssetLogisticsApi;
 import uz.ttpu.inventory.asset.api.ItemDto;
 import uz.ttpu.inventory.common.domain.ResourceNotFoundException;
+import uz.ttpu.inventory.common.domain.RoomLockedForInventoryException;
+import uz.ttpu.inventory.inventory.api.InventoryLockApi;
+import uz.ttpu.inventory.inventory.api.RoomLockStatusDto;
 import uz.ttpu.inventory.movement.api.IssueDispatchRequest;
 import uz.ttpu.inventory.movement.api.MovementConfirmRequest;
 import uz.ttpu.inventory.movement.api.MovementRecordDto;
@@ -22,13 +25,35 @@ import uz.ttpu.inventory.movement.repository.MovementRepository;
 import uz.ttpu.inventory.security.api.TotpVerificationApi;
 
 @Service
-@RequiredArgsConstructor
 public class MovementService {
 
   private final MovementRepository movementRepository;
   private final AssetLogisticsApi assetLogisticsApi;
   private final TotpVerificationApi totpVerificationApi;
   private final MovementMapper movementMapper;
+  private final InventoryLockApi inventoryLockApi;
+
+  public MovementService(
+      MovementRepository movementRepository,
+      AssetLogisticsApi assetLogisticsApi,
+      TotpVerificationApi totpVerificationApi,
+      MovementMapper movementMapper) {
+    this(movementRepository, assetLogisticsApi, totpVerificationApi, movementMapper, null);
+  }
+
+  @Autowired
+  public MovementService(
+      MovementRepository movementRepository,
+      AssetLogisticsApi assetLogisticsApi,
+      TotpVerificationApi totpVerificationApi,
+      MovementMapper movementMapper,
+      @Autowired(required = false) InventoryLockApi inventoryLockApi) {
+    this.movementRepository = movementRepository;
+    this.assetLogisticsApi = assetLogisticsApi;
+    this.totpVerificationApi = totpVerificationApi;
+    this.movementMapper = movementMapper;
+    this.inventoryLockApi = inventoryLockApi;
+  }
 
   // =========================================================================
   // 1. ISSUE FLOW (OMBORDA -> YOLDA -> FOYDALANISHDA or back to OMBORDA)
@@ -155,6 +180,23 @@ public class MovementService {
     }
 
     ItemDto item = assetLogisticsApi.resolveItemByIdOrQr(request.itemId(), request.qrCode());
+
+    // Strict Rule: Block transfer movements if item's current room or target room is in an active
+    // inventory session
+    if (inventoryLockApi != null) {
+      if (item.roomId() != null && inventoryLockApi.isRoomLockedForInventory(item.roomId())) {
+        String sessionCode =
+            inventoryLockApi.findActiveSessionCodeForRoom(item.roomId()).orElse("ACTIVE");
+        throw new RoomLockedForInventoryException(item.roomId(), sessionCode);
+      }
+      if (request.toRoomId() != null
+          && inventoryLockApi.isRoomLockedForInventory(request.toRoomId())) {
+        String sessionCode =
+            inventoryLockApi.findActiveSessionCodeForRoom(request.toRoomId()).orElse("ACTIVE");
+        throw new RoomLockedForInventoryException(request.toRoomId(), sessionCode);
+      }
+    }
+
     assetLogisticsApi.initiateTransfer(item.id(), request.documentNumber());
 
     UUID operationId = UUID.randomUUID();
@@ -192,6 +234,22 @@ public class MovementService {
         getPendingInitialRecord(operationId, MovementEventType.TRANSFER_INITIATED);
     validateRecipient(initial, request.recipientEmployeeId());
     verifyTotpOrThrow(request.recipientEmployeeId(), request.totpCode());
+
+    // Strict Rule: Block transfer completion if source or destination room is locked for inventory
+    if (inventoryLockApi != null) {
+      if (initial.getFromRoomId() != null
+          && inventoryLockApi.isRoomLockedForInventory(initial.getFromRoomId())) {
+        String sessionCode =
+            inventoryLockApi.findActiveSessionCodeForRoom(initial.getFromRoomId()).orElse("ACTIVE");
+        throw new RoomLockedForInventoryException(initial.getFromRoomId(), sessionCode);
+      }
+      if (initial.getToRoomId() != null
+          && inventoryLockApi.isRoomLockedForInventory(initial.getToRoomId())) {
+        String sessionCode =
+            inventoryLockApi.findActiveSessionCodeForRoom(initial.getToRoomId()).orElse("ACTIVE");
+        throw new RoomLockedForInventoryException(initial.getToRoomId(), sessionCode);
+      }
+    }
 
     assetLogisticsApi.confirmTransfer(
         initial.getItemId(),
@@ -274,6 +332,14 @@ public class MovementService {
     return movementRepository.findAllByItemIdOrderByRecordedAtDesc(itemId).stream()
         .map(movementMapper::toDto)
         .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public RoomLockStatusDto getRoomInventoryLockStatus(UUID roomId) {
+    if (inventoryLockApi == null) {
+      return new RoomLockStatusDto(roomId, false, null, null, null);
+    }
+    return inventoryLockApi.getRoomLockStatus(roomId);
   }
 
   private MovementRecord getPendingInitialRecord(

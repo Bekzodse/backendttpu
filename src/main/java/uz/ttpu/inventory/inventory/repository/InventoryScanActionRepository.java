@@ -15,4 +15,13 @@ public interface InventoryScanActionRepository extends JpaRepository<InventorySc
 
   List<InventoryScanAction> findAllBySessionIdAndReconciliationCategoryOrderByScannedAtAsc(
       UUID sessionId, ReconciliationCategory category);
+
+  List<InventoryScanAction> findAllBySessionIdAndItemId(UUID sessionId, UUID itemId);
+
+  List<InventoryScanAction> findAllBySessionIdAndQrCodeIgnoreCase(UUID sessionId, String qrCode);
+
+  List<InventoryScanAction> findAllBySessionIdAndInventoryNumberIgnoreCase(
+      UUID sessionId, String inventoryNumber);
+
+  List<InventoryScanAction> findAllBySessionIdAndConflictTrueOrderByScannedAtAsc(UUID sessionId);
 }

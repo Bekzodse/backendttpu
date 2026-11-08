@@ -21,6 +21,7 @@ import uz.ttpu.inventory.common.domain.DeviceRevokedException;
 import uz.ttpu.inventory.common.domain.ErrorCode;
 import uz.ttpu.inventory.common.domain.ProblemDetailFactory;
 import uz.ttpu.inventory.common.domain.ResourceNotFoundException;
+import uz.ttpu.inventory.common.domain.RoomLockedForInventoryException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -143,6 +144,22 @@ public class GlobalExceptionHandler {
             resolveInstance(request));
     problem.setProperty("deviceId", ex.getDeviceId());
     return ResponseEntity.status(ErrorCode.ERR_DEVICE_REVOKED.getStatus())
+        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+        .body(problem);
+  }
+
+  @ExceptionHandler(RoomLockedForInventoryException.class)
+  public ResponseEntity<ProblemDetail> handleRoomLockedForInventory(
+      RoomLockedForInventoryException ex, HttpServletRequest request) {
+    ProblemDetail problem =
+        ProblemDetailFactory.create(
+            ErrorCode.ERR_ROOM_LOCKED_FOR_INVENTORY,
+            ex.getMessage(),
+            request.getLocale(),
+            resolveInstance(request));
+    problem.setProperty("roomId", ex.getRoomId());
+    problem.setProperty("sessionCode", ex.getSessionCode());
+    return ResponseEntity.status(ErrorCode.ERR_ROOM_LOCKED_FOR_INVENTORY.getStatus())
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
         .body(problem);
   }

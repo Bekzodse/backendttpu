@@ -16,4 +16,37 @@ public record OfflineScanActionResultDto(
     ReconciliationCategory category,
     String categoryLabel,
     boolean duplicateIgnored,
-    Instant scannedAt) {}
+    boolean conflict,
+    String conflictDetails,
+    Instant scannedAt) {
+
+  public OfflineScanActionResultDto(
+      UUID clientActionId,
+      UUID scanActionId,
+      UUID sessionId,
+      UUID itemId,
+      String qrCode,
+      String inventoryNumber,
+      UUID expectedRoomId,
+      UUID scannedRoomId,
+      ReconciliationCategory category,
+      String categoryLabel,
+      boolean duplicateIgnored,
+      Instant scannedAt) {
+    this(
+        clientActionId,
+        scanActionId,
+        sessionId,
+        itemId,
+        qrCode,
+        inventoryNumber,
+        expectedRoomId,
+        scannedRoomId,
+        category,
+        categoryLabel,
+        duplicateIgnored,
+        false,
+        null,
+        scannedAt);
+  }
+}

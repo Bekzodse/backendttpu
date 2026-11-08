@@ -9,4 +9,25 @@ public record OfflineSyncBatchResponseDto(
     int totalSubmitted,
     int appliedCount,
     int duplicateIgnoredCount,
-    List<OfflineScanActionResultDto> results) {}
+    int conflictCount,
+    List<OfflineScanActionResultDto> results) {
+
+  public OfflineSyncBatchResponseDto(
+      UUID sessionId,
+      long packageVersion,
+      int totalSubmitted,
+      int appliedCount,
+      int duplicateIgnoredCount,
+      List<OfflineScanActionResultDto> results) {
+    this(
+        sessionId,
+        packageVersion,
+        totalSubmitted,
+        appliedCount,
+        duplicateIgnoredCount,
+        results != null
+            ? (int) results.stream().filter(OfflineScanActionResultDto::conflict).count()
+            : 0,
+        results);
+  }
+}

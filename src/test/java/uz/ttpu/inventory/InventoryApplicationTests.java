@@ -38,6 +38,7 @@ import uz.ttpu.inventory.asset.api.AssetSearchResultDto;
 import uz.ttpu.inventory.asset.api.CreateItemRequest;
 import uz.ttpu.inventory.asset.api.ItemDto;
 import uz.ttpu.inventory.asset.api.PublicItemCardDto;
+import uz.ttpu.inventory.asset.api.RecordDataWipeRequest;
 import uz.ttpu.inventory.asset.domain.ItemState;
 import uz.ttpu.inventory.asset.service.AssetScheduledAlertJob;
 import uz.ttpu.inventory.asset.service.AssetService;
@@ -911,6 +912,16 @@ class InventoryApplicationTests {
                 Map.of(),
                 emp1.id(),
                 true));
+    // B5.6 Strict Rule: Laptops require IT data-wipe before write-off completion
+    assetService.recordDataWipe(
+        itemMissing.id(),
+        new RecordDataWipeRequest(
+            "IT Specialist Rustamov",
+            emp1.id(),
+            "DoD 5220.22-M 3-pass overwrite",
+            "CERT-WIPE-" + suffix,
+            "Certified IT Data Wipe",
+            Instant.now()));
     workflowService.approveStep(
         woWfInst.id(),
         new StepApprovalRequest(
